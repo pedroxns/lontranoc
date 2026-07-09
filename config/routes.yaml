@@ -1,0 +1,383 @@
+frigate:
+  keywords:
+    frigate: 10
+    camera: 5
+    câmera: 5
+    câmeras: 5
+    cameras: 5
+    nvr: 7
+    rtsp: 7
+    ffmpeg: 6
+    cachorro: 8
+    cachorros: 8
+    dog: 8
+    dogs: 8
+    pessoa: 6
+    person: 6
+    carro: 6
+    car: 6
+
+  queries:
+    health:
+      keywords:
+        houve: 4
+        aconteceu: 4
+        problema: 8
+        erro: 8
+        falha: 8
+        ffmpeg: 8
+        rtsp: 8
+        offline: 7
+        timeout: 7
+      sql: |
+        SELECT event_type, severity, component, camera, subsystem,
+               error_reason, message, service
+        FROM frigate
+        WHERE severity IN ('warning', 'error', 'critical')
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    detection:
+      keywords:
+        detecção: 8
+        deteccao: 8
+        pessoa: 8
+        person: 8
+        carro: 8
+        car: 8
+        cachorro: 10
+        cachorros: 10
+        dog: 10
+        dogs: 10
+        animal: 7
+        animais: 7
+        objeto: 7
+        object: 7
+        movimento: 6
+        motion: 6
+      sql: |
+        SELECT service, event_type, severity, component, camera, label,
+               score, top_score, message
+        FROM frigate
+        WHERE component = 'detection'
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    default:
+      sql: |
+        SELECT *
+        FROM frigate
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+adguard:
+  keywords:
+    adguard: 10
+    dns: 10
+    resolver: 7
+    resolução: 7
+    resolucao: 7
+    bloqueio: 7
+    bloqueios: 7
+    domínio: 6
+    dominio: 6
+    upstream: 8
+    nxdomain: 8
+    servfail: 8
+    cliente: 4
+    latência: 6
+    latencia: 6
+
+  queries:
+    health:
+      keywords:
+        status: 8
+        saúde: 8
+        saude: 8
+        problema: 8
+        erro: 8
+        falha: 8
+        caiu: 8
+        lento: 7
+        lenta: 7
+        latência: 7
+        latencia: 7
+      sql: |
+        SELECT service, component, event_type, severity, status,
+               instance, node, running, protection_enabled,
+               health_score, health_status, blocked_percent,
+               querylog_error_count, message
+        FROM adguard
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    blocked:
+      keywords:
+        bloqueio: 10
+        bloqueios: 10
+        bloqueado: 10
+        bloqueada: 10
+        blocked: 10
+        block: 8
+      sql: |
+        SELECT service, component, event_type, severity, status,
+               instance, num_dns_queries, num_blocked_filtering,
+               blocked_percent, message
+        FROM adguard
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    clients:
+      keywords:
+        cliente: 10
+        clientes: 10
+        client: 10
+        clients: 10
+        quem: 5
+        consultou: 7
+        consulta: 5
+        consultas: 5
+      sql: |
+        SELECT service, component, event_type, severity, status,
+               instance, num_dns_queries, message
+        FROM adguard
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    upstream:
+      keywords:
+        upstream: 10
+        resolver: 8
+        cloudflare: 5
+        quad9: 5
+        opendns: 5
+        servfail: 8
+        nxdomain: 8
+      sql: |
+        SELECT service, component, event_type, severity, status,
+               instance, avg_processing_time, querylog_error_count,
+               querylog_error_domains, message
+        FROM adguard
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    default:
+      sql: |
+        SELECT service, component, event_type, severity, status,
+               instance, running, protection_enabled, health_score,
+               health_status, num_dns_queries, num_blocked_filtering,
+               blocked_percent, querylog_error_count, message
+        FROM adguard
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+vehicle:
+  keywords:
+    carro: 10
+    koleos: 10
+    renault: 8
+    veículo: 8
+    veiculo: 8
+    autonomia: 8
+    range: 8
+    km: 5
+    quilômetros: 6
+    quilometros: 6
+    combustível: 8
+    combustivel: 8
+    consumo: 8
+    pneu: 8
+    pneus: 8
+    calibragem: 8
+    pressão: 8
+    pressao: 8
+    localização: 8
+    localizacao: 8
+    onde: 5
+    revisão: 8
+    revisao: 8
+    bateria: 7
+    porta: 7
+    portas: 7
+    travado: 7
+    trancado: 7
+    motor: 7
+
+  queries:
+    location:
+      keywords:
+        onde: 10
+        localização: 10
+        localizacao: 10
+        local: 8
+        casa: 5
+        zona: 5
+      sql: |
+        SELECT vehicle_id, zone, latitude, longitude,
+               gps_accuracy, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    fuel:
+      keywords:
+        autonomia: 10
+        range: 10
+        km: 6
+        quilômetros: 8
+        quilometros: 8
+        combustível: 8
+        combustivel: 8
+        gasolina: 6
+        tanque: 6
+        dirigir: 8
+        rodar: 8
+        posso rodar: 10
+        posso dirigir: 10
+      sql: |
+        SELECT vehicle_id, range_km, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    consumption:
+      keywords:
+        consumo: 10
+        elevado: 8
+        alto: 8
+        baixo: 5
+        km/l: 10
+        media: 6
+        média: 6
+      sql: |
+        SELECT vehicle_id, average_consumption_km_l, range_km,
+               fuel_percent, fuel_liters, odometer_km, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 20
+
+    tires:
+      keywords:
+        pneu: 10
+        pneus: 10
+        calibragem: 10
+        calibrar: 10
+        pressão: 10
+        pressao: 10
+        psi: 8
+      sql: |
+        SELECT vehicle_id,
+               tire_front_left_psi, tire_front_right_psi,
+               tire_rear_left_psi, tire_rear_right_psi,
+               tire_min_psi, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    state:
+      keywords:
+        travado: 10
+        trancado: 10
+        porta: 8
+        portas: 8
+        aberto: 8
+        aberta: 8
+        motor: 8
+        ligado: 7
+        desligado: 7
+      sql: |
+        SELECT vehicle_id, engine_running, locked,
+               any_door_open,
+               door_driver_open, door_passenger_open,
+               door_rear_left_open, door_rear_right_open,
+               door_trunk_open, door_hood_open,
+               last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    maintenance:
+      keywords:
+        revisão: 10
+        revisao: 10
+        manutenção: 8
+        manutencao: 8
+        odometro: 8
+        odômetro: 8
+        km: 4
+      sql: |
+        SELECT vehicle_id, odometer_km,
+               distance_to_service_km, days_to_service,
+               last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    battery_12v:
+      keywords:
+        bateria 12v: 10
+        12v: 10
+        bateria auxiliar: 10
+        bateria convencional: 8
+        voltagem: 7
+      sql: |
+        SELECT vehicle_id, aux_battery_voltage,
+               aux_battery_percent, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    battery_hybrid:
+      keywords:
+        bateria híbrida: 10
+        bateria hibrida: 10
+        bateria ev: 10
+        bateria de tração: 10
+        bateria tracao: 10
+        híbrida: 8
+        hibrida: 8
+      sql: |
+        SELECT vehicle_id, hybrid_battery_percent, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    battery:
+      keywords:
+        bateria: 6
+        carga: 5
+      sql: |
+        SELECT vehicle_id, aux_battery_voltage,
+               aux_battery_percent, hybrid_battery_percent,
+               last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    fuel_level:
+      keywords:
+        nível: 10
+        nivel: 10
+        combustível: 8
+        combustivel: 8
+        gasolina: 8
+        tanque: 8
+        litros: 8
+        percentual: 6
+        porcentagem: 6
+      sql: |
+        SELECT vehicle_id, fuel_percent, fuel_liters, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1
+
+    default:
+      sql: |
+        SELECT vehicle_id, zone, range_km, fuel_percent,
+               average_consumption_km_l, tire_min_psi,
+               engine_running, locked, any_door_open,
+               odometer_km, distance_to_service_km,
+               days_to_service, last_update
+        FROM vehicle
+        ORDER BY _timestamp DESC
+        LIMIT 1

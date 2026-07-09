@@ -1,0 +1,46 @@
+vehicle:
+  id: koleos
+  manufacturer: Renault
+  model: Koleos E-Tech Spirit Alpine
+
+  location:
+    tracker: device_tracker.renault_koleos_localizacao
+
+  fuel:
+    range: sensor.renault_koleos_autonomia
+    percent: sensor.renault_koleos_combustivel_percentual
+    liters: sensor.renault_koleos_volume_de_combustivel
+    average_consumption: sensor.renault_koleos_consumo_medio
+
+  engine:
+    running: binary_sensor.renault_koleos_motor
+    temperature: sensor.renault_koleos_temperatura_do_motor
+
+  battery:
+    aux_voltage: sensor.renault_koleos_bateria_12v
+    aux_percent: sensor.renault_koleos_carga_bateria_12v
+    hybrid_percent: sensor.renault_koleos_carga_bateria_hibrida_ev
+
+  maintenance:
+    odometer: sensor.renault_koleos_odometro
+    distance_to_service: sensor.renault_koleos_distancia_ate_revisao
+    days_to_service: sensor.renault_koleos_dias_ate_revisao
+
+  tires:
+    front_left: sensor.renault_koleos_pressao_pneu_dianteiro_esquerdo
+    front_right: sensor.renault_koleos_pressao_pneu_dianteiro_direito
+    rear_left: sensor.renault_koleos_pressao_pneu_traseiro_esquerdo
+    rear_right: sensor.renault_koleos_pressao_pneu_traseiro_direito
+
+  doors:
+    locked: binary_sensor.renault_koleos_travamento_central
+    driver: binary_sensor.renault_koleos_porta_motorista
+    passenger: binary_sensor.renault_koleos_porta_passageiro
+    rear_left: binary_sensor.renault_koleos_porta_traseira_esquerda
+    rear_right: binary_sensor.renault_koleos_porta_traseira_direita
+    trunk: binary_sensor.renault_koleos_porta_malas
+    hood: binary_sensor.renault_koleos_capo
+
+  metadata:
+    last_update: sensor.renault_koleos_ultima_atualizacao
+    update_interval: sensor.renault_koleos_intervalo_de_atualizacao
