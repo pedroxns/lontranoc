@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import datetime, timezone
-from query_context import build_query_context
+from core.query_context import build_query_context
 
 import paho.mqtt.client as mqtt
 import requests
@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 from uuid import uuid4
 from openobserve_ingest import emit
 from openobserve_search import search_logs
-from context_router import route_context
-from search_engine import search_context, build_search_summary
+from core.context_router import route_context
+from core.search_engine import search_context, build_search_summary
 from analysis_engine import analyze_search_result
 
 load_dotenv("/opt/lontranoc/.env")

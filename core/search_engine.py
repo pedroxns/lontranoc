@@ -1,6 +1,27 @@
 from openobserve_search import search_logs
-from query_context import build_query_context
+from core.query_context import build_query_context
 
+def apply_filters(sql: str, filters: dict) -> str:
+    if not filters:
+        return sql
+
+    extra_conditions = []
+
+    if "label" in filters:
+        extra_conditions.append(f"lower(label) = '{filters['label'].lower()}'")
+
+    if "camera" in filters:
+        extra_conditions.append(f"camera = '{filters['camera']}'")
+
+    if not extra_conditions:
+        return sql
+
+    condition_sql = " AND " + " AND ".join(extra_conditions)
+
+    if "WHERE" in sql.upper():
+        return sql.replace("ORDER BY", condition_sql + "\nORDER BY")
+
+    return sql.replace("ORDER BY", "WHERE " + " AND ".join(extra_conditions) + "\nORDER BY")
 
 def search_context(question: str):
     ctx = build_query_context(question)
@@ -16,7 +37,9 @@ def search_context(question: str):
     time_ctx = ctx["time"]
 
     try:
+        sql = apply_filters(ctx["sql"], ctx.get("filters", {}))
         rows = search_logs(
+        sql,
             ctx["sql"],
             start_time=time_ctx["start_time"],
             end_time=time_ctx["end_time"],
@@ -28,9 +51,8 @@ def search_context(question: str):
             "context": ctx,
             "rows": rows,
             "error": None,
+            "sql": sql,
         }
-
-
 
     except Exception as error:
         return {
@@ -40,7 +62,6 @@ def search_context(question: str):
             "error": str(error),
         }
 
-def apply_filters(sql, filters):
 
 def build_search_summary(result: dict):
     ctx = result["context"]

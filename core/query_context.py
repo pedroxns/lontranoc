@@ -1,6 +1,6 @@
-from context_router import route_context
-from time_parser import parse_time_window
-from entity_parser import parse_entities
+from core.context_router import route_context
+from core.time_parser import parse_time_window
+from core.entity_parser import parse_entities
 
 
 def build_query_context(question: str):
