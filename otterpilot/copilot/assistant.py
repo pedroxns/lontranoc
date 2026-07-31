@@ -3,6 +3,8 @@ import os
 import time
 from datetime import datetime, timezone
 from xmlrpc import client
+from otterpilot.core.config import get_env
+from otterpilot.core.config import get_env
 from otterpilot.routing.query_context import build_query_context
 
 import paho.mqtt.client as mqtt
@@ -13,15 +15,15 @@ from otterpilot.knowledge.providers.openobserve.ingest import emit
 from otterpilot.knowledge.providers.openobserve.search import search_logs
 from otterpilot.routing.context_router import route_context
 from otterpilot.knowledge.search import search_context, build_search_summary
-from analysis_engine import analyze_search_result
+from otterpilot.analysis.engine import analyze_search_result
 
 load_dotenv("/opt/otterpilot/.env")
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+OLLAMA_URL = get_env("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = get_env("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 
-MQTT_HOST = os.getenv("MQTT_HOST")
-MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_HOST = get_env("MQTT_HOST")
+MQTT_PORT = int(get_env("MQTT_PORT", "1883"))
 
 LEGACY_REQUEST_TOPIC = "homelab/lontranoc/request"
 LEGACY_RESPONSE_TOPIC = "homelab/lontranoc/response"
