@@ -1,4 +1,4 @@
-from openobserve_search import search_logs
+from otterpilot.knowledge.providers.openobserve.search import search_logs
 from otterpilot.routing.query_context import build_query_context
 
 def apply_filters(sql: str, filters: dict) -> str:

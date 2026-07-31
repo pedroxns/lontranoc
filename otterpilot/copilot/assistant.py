@@ -9,8 +9,8 @@ import paho.mqtt.client as mqtt
 import requests
 from dotenv import load_dotenv
 from uuid import uuid4
-from openobserve_ingest import emit
-from openobserve_search import search_logs
+from otterpilot.knowledge.providers.openobserve.ingest import emit
+from otterpilot.knowledge.providers.openobserve.search import search_logs
 from otterpilot.routing.context_router import route_context
 from otterpilot.knowledge.search import search_context, build_search_summary
 from analysis_engine import analyze_search_result
