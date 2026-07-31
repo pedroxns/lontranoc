@@ -1,10 +1,11 @@
 import re
-from pathlib import Path
+
+from otterpilot.core.config import config_path
 
 import yaml
 
 
-ROUTES_FILE = Path("/opt/lontranoc/config/routes.yaml")
+ROUTES_FILE = config_path("routes.yaml")
 
 
 GENERAL_HISTORY_KEYWORDS = {
