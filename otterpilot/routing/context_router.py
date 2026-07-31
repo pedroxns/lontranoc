@@ -104,9 +104,9 @@ def route_context(question: str):
         return best_stream, query_name, sql, best_score
 
     if general_score > 0:
-        return "lontranoc", "default", """
+        return "otterpilot", "default", """
         SELECT event_type, question, answer, duration_ms, status, message, timestamp
-        FROM lontranoc
+        FROM otterpilot
         ORDER BY _timestamp DESC
         LIMIT 30
         """, general_score
