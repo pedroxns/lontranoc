@@ -2,6 +2,7 @@ import json
 import os
 import time
 from datetime import datetime, timezone
+from xmlrpc import client
 from otterpilot.routing.query_context import build_query_context
 
 import paho.mqtt.client as mqtt
@@ -14,7 +15,7 @@ from otterpilot.routing.context_router import route_context
 from otterpilot.knowledge.search import search_context, build_search_summary
 from analysis_engine import analyze_search_result
 
-load_dotenv("/opt/lontranoc/.env")
+load_dotenv("/opt/otterpilot/.env")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
@@ -22,8 +23,11 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 MQTT_HOST = os.getenv("MQTT_HOST")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 
-REQUEST_TOPIC = "homelab/lontranoc/request"
-RESPONSE_TOPIC = "homelab/lontranoc/response"
+LEGACY_REQUEST_TOPIC = "homelab/lontranoc/request"
+LEGACY_RESPONSE_TOPIC = "homelab/lontranoc/response"
+
+REQUEST_TOPIC = "otterpilot/request"
+RESPONSE_TOPIC = "otterpilot/response"
 
 CONTEXT_TOPICS = [
     "homelab/status/raw",
@@ -78,8 +82,8 @@ def get_historical_context(question: str, request_id: str):
 
     if result["error"]:
         emit(
-            stream="lontranoc",
-            service="lontranoc",
+            stream="otterpilot",
+            service="otterpilot",
             component="assistant",
             event_type="search_error",
             severity="error",
@@ -97,8 +101,8 @@ def get_historical_context(question: str, request_id: str):
         return [{"error": result["error"]}]
 
     emit(
-        stream="lontranoc",
-        service="lontranoc",
+        stream="otterpilot",
+        service="otterpilot",
         component="assistant",
         event_type="search_executed",
         message="Consulta histórica executada no OpenObserve",
@@ -124,7 +128,13 @@ def get_historical_context(question: str, request_id: str):
 def ask_ollama(question, context, request_id):
     historical_events = get_historical_context(question, request_id)
     prompt = f"""
-Você é o LontraNOC, operador técnico de um homelab amador.
+Você é o OtterPilot, um copiloto inteligente para homelabs, infraestrutura self-hosted e pequenos ambientes de TI.
+
+Seu objetivo é ajudar o usuário a compreender o estado do ambiente, correlacionar eventos, identificar problemas e sugerir ações práticas.
+
+Você nunca inventa informações.
+Sempre utiliza primeiro os dados coletados do ambiente.
+Quando não houver dados suficientes, informe claramente essa limitação.
 
 Ambiente monitorado:
 - matx_cpu = ryzen5 5600g - servidor Proxmox principal com RTX 3060 e Ollama.
@@ -171,33 +181,39 @@ Se houver alerta, destaque claramente.
     return response.json().get("response", "").strip()
 
 
-def publish_response(client, question, answer):
+def publish_response(
+    client,
+    question: str,
+    answer: str,
+    response_topic: str = RESPONSE_TOPIC,
+):
     payload = {
-        "timestamp": now_iso(),
         "question": question,
         "answer": answer,
     }
 
-    result = client.publish(
-        RESPONSE_TOPIC,
+    client.publish(
+        response_topic,
         json.dumps(payload, ensure_ascii=False),
-        qos=1,
-        retain=True,
     )
-
-    result.wait_for_publish(timeout=10)
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
     for topic in CONTEXT_TOPICS:
         client.subscribe(topic)
 
+    client.subscribe(LEGACY_REQUEST_TOPIC)
     client.subscribe(REQUEST_TOPIC)
 
 
 def on_message(client, userdata, msg):
     topic = msg.topic
     payload_text = msg.payload.decode()
+
+    if msg.topic == LEGACY_REQUEST_TOPIC:
+        response_topic = LEGACY_RESPONSE_TOPIC
+    else:
+        response_topic = RESPONSE_TOPIC
 
     if topic in CONTEXT_TOPICS:
         try:
@@ -206,7 +222,7 @@ def on_message(client, userdata, msg):
             context_messages[topic] = payload_text
         return
 
-    if topic == REQUEST_TOPIC:
+    if topic in (REQUEST_TOPIC, LEGACY_REQUEST_TOPIC):
         try:
             data = json.loads(payload_text)
             question = data.get("question", "").strip()
@@ -219,11 +235,11 @@ def on_message(client, userdata, msg):
         request_id = str(uuid4())
 
         emit(
-            stream="lontranoc",
-            service="lontranoc",
+            stream="otterpilot",
+            service="otterpilot",
             component="assistant",
             event_type="request_received",
-            message="Pergunta recebida pelo LontraNOC",
+            message="Pergunta recebida pelo OtterPilot",
             question=question,
             request_id=request_id,
         )
@@ -235,11 +251,11 @@ def on_message(client, userdata, msg):
             duration_ms = int((time.time() - start) * 1000)
 
             emit(
-                stream="lontranoc",
-                service="lontranoc",
+                stream="otterpilot",
+                service="otterpilot",
                 component="assistant",
                 event_type="response_generated",
-                message="Resposta gerada pelo LontraNOC",
+                message="Resposta gerada pelo OtterPilot",
                 question=question,
                 answer=answer,
                 request_id=request_id,
@@ -247,11 +263,11 @@ def on_message(client, userdata, msg):
                 model=OLLAMA_MODEL,
             )
         except Exception as error:
-            answer = f"Erro ao consultar o LontraNOC: {error}"
+            answer = f"Erro ao consultar o OtterPilot: {error}"
 
             emit(
-                stream="lontranoc",
-                service="lontranoc",
+                stream="otterpilot",
+                service="otterpilot",
                 component="assistant",
                 event_type="error",
                 severity="error",
@@ -263,7 +279,12 @@ def on_message(client, userdata, msg):
                 schema_version="1.0"
             ) 
 
-        publish_response(client, question, answer)
+        publish_response(
+            client,
+            question,
+            answer,
+            response_topic=response_topic,
+        )
 
 
 def main():
@@ -275,10 +296,10 @@ def main():
 
         try:
             client.connect(MQTT_HOST, MQTT_PORT, 60)
-            print("LontraNOC Assistant escutando MQTT...")
+            print("OtterPilot Assistant escutando MQTT...")
             client.loop_forever()
         except Exception as error:
-            print(f"Erro MQTT no LontraNOC: {error}. Tentando novamente em 10s...")
+            print(f"Erro MQTT no OtterPilot: {error}. Tentando novamente em 10s...")
             try:
                 client.disconnect()
             except Exception:
