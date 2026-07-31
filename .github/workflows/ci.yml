@@ -128,14 +128,12 @@ jobs:
           print("Routing tests passed")
           PY
 
-      - name: Test compatibility imports
+      - name: Test OtterPilot imports
         run: |
           python - <<'PY'
-          from core.context_router import route_context
-          from core.query_context import build_query_context
-          from core.search_engine import build_search_summary
-          from core.time_parser import parse_time_window
-          from core.entity_parser import parse_entities
+          from otterpilot.routing.context_router import route_context
+          from otterpilot.routing.query_context import build_query_context
+          from otterpilot.knowledge.search import build_search_summary
 
           stream, query_name, sql, score = route_context(
               "Algum pneu precisa calibrar?"
@@ -146,5 +144,10 @@ jobs:
           assert sql
           assert score > 0
 
-          print("Legacy compatibility imports passed")
+          ctx = build_query_context("Quantos km posso rodar?")
+
+          assert ctx["stream"] == "vehicle"
+          assert ctx["query_name"] == "fuel"
+
+          print("OtterPilot imports OK")
           PY
