@@ -16,6 +16,7 @@ from otterpilot.knowledge.providers.openobserve.search import search_logs
 from otterpilot.routing.context_router import route_context
 from otterpilot.knowledge.search import search_context, build_search_summary
 from otterpilot.analysis.engine import analyze_search_result
+from otterpilot.core.serialization import make_json_safe
 
 load_dotenv("/opt/otterpilot/.env")
 
@@ -154,10 +155,10 @@ Ambiente monitorado:
 
 
 Dados atuais via MQTT:
-{json.dumps(context, indent=2, ensure_ascii=False)}
+{json.dumps(make_json_safe(context), indent=2, ensure_ascii=False)}
 
 Eventos históricos do OpenObserve:
-{json.dumps(historical_events, indent=2, ensure_ascii=False)}
+{json.dumps(make_json_safe(historical_events), indent=2, ensure_ascii=False)}
 
 Pergunta:
 {question}
@@ -196,7 +197,7 @@ def publish_response(
 
     client.publish(
         response_topic,
-        json.dumps(payload, ensure_ascii=False),
+        json.dumps(make_json_safe(payload), ensure_ascii=False),
     )
 
 
