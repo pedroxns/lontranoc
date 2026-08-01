@@ -18,7 +18,12 @@ from otterpilot.core.registry.runtime import (
     UnknownRuntimeError,
     runtime_registry,
 )
-
+from otterpilot.core.registry.executor import (
+    ConnectorExecutionError,
+    ConnectorExecutor,
+    UnknownConnectorError,
+    UnsupportedCapabilityError,
+)
 __all__ = [
     "CapabilityDefinition",
     "ComponentStatus",
@@ -34,4 +39,8 @@ __all__ = [
     "RuntimeRegistryError",
     "UnknownRuntimeError",
     "runtime_registry",
+    "ConnectorExecutionError",
+    "ConnectorExecutor",
+    "UnknownConnectorError",
+    "UnsupportedCapabilityError",
 ]
