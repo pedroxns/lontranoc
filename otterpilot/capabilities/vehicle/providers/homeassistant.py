@@ -219,17 +219,35 @@ def emit_snapshot(snapshot):
         snapshot=snapshot,
     )
 
+def collect() -> dict:
+    """Coleta e normaliza o estado atual do veículo via Home Assistant."""
 
-def main():
     if not HA_URL or not HA_TOKEN:
-        raise RuntimeError("HA_URL e HA_TOKEN_VEHICLE/HA_TOKEN precisam estar configurados no .env")
+        raise RuntimeError(
+            "HA_URL e HA_TOKEN_VEHICLE/HA_TOKEN "
+            "precisam estar configurados"
+        )
 
     config = load_config()
     states = get_ha_states()
-    snapshot = build_snapshot(config, states)
 
-    print("Vehicle snapshot:", snapshot, flush=True)
+    return build_snapshot(config, states)
+
+def publish(snapshot: dict) -> None:
+    """Publica um snapshot normalizado no Knowledge Provider."""
+
     emit_snapshot(snapshot)
+
+def main() -> None:
+    snapshot = collect()
+
+    print(
+        "OtterPilot vehicle snapshot:",
+        snapshot,
+        flush=True,
+    )
+
+    publish(snapshot)
 
 
 if __name__ == "__main__":
