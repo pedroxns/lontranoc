@@ -342,4 +342,21 @@ Before implementing a new feature, answer:
 4. Does it belong in core, integration, capability, knowledge or analysis?
 5. How will it be tested?
 
+## Domain organization
 
+OtterPilot groups capabilities into product-facing domains.
+
+The conceptual hierarchy is:
+
+Domain
+→ Capability
+→ Provider
+→ Resource
+
+Domains organize navigation, onboarding and dashboards.
+
+Capabilities remain the primary technical abstraction.
+
+Providers supply product-specific data to capabilities.
+
+The canonical domain definitions are documented in `architecture/DOMAINS.md`.
