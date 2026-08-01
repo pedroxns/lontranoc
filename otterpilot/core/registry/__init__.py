@@ -10,6 +10,14 @@ from otterpilot.core.registry.registry import (
     UnknownCapabilityError,
     registry,
 )
+from otterpilot.core.registry.runtime import (
+    ConnectorRuntime,
+    ConnectorRuntimeRegistry,
+    DuplicateRuntimeError,
+    RuntimeRegistryError,
+    UnknownRuntimeError,
+    runtime_registry,
+)
 
 __all__ = [
     "CapabilityDefinition",
@@ -20,4 +28,10 @@ __all__ = [
     "RegistryError",
     "UnknownCapabilityError",
     "registry",
+    "ConnectorRuntime",
+    "ConnectorRuntimeRegistry",
+    "DuplicateRuntimeError",
+    "RuntimeRegistryError",
+    "UnknownRuntimeError",
+    "runtime_registry",
 ]
