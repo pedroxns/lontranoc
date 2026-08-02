@@ -1,43 +1,74 @@
-frigate:
+camera_health:
   keywords:
-    frigate: 10
-    camera: 5
-    câmera: 5
-    câmeras: 5
-    cameras: 5
-    nvr: 7
-    rtsp: 9
-    ffmpeg: 9
+    frigate: 3
+    camera: 8
+    câmera: 8
+    câmeras: 8
+    cameras: 8
+    nvr: 5
     problema: 8
+    problemas: 8
     erro: 8
     falha: 8
-    offline: 8
-    timeout: 8
+    offline: 10
+    caiu: 8
+    fps: 7
+    ffmpeg: 8
+    rtsp: 8
+    timeout: 7
 
   queries:
+    problems:
+      keywords:
+        problema: 10
+        problemas: 10
+        erro: 9
+        falha: 9
+        offline: 10
+        caiu: 9
+        ffmpeg: 8
+        rtsp: 8
+        timeout: 8
+      sql: |
+        SELECT service, component, event_type, resource_id,
+               camera, camera_fps, process_fps, skipped_fps,
+               detection_fps, detection_enabled,
+               capture_pid, ffmpeg_pid,
+               severity, status, message
+        FROM camera_health
+        WHERE status != 'healthy'
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
     health:
       keywords:
-        houve: 4
-        aconteceu: 4
-        problema: 8
-        erro: 8
-        falha: 8
-        ffmpeg: 10
-        rtsp: 10
-        offline: 9
-        timeout: 9
+        status: 8
+        saúde: 8
+        saude: 8
+        como: 3
+        câmera: 5
+        camera: 5
+        câmeras: 5
+        cameras: 5
+        fps: 6
       sql: |
-        SELECT event_type, severity, component, camera, subsystem,
-               error_reason, message, service
-        FROM frigate
-        WHERE severity IN ('warning', 'error', 'critical')
+        SELECT service, component, event_type, resource_id,
+               camera, camera_fps, process_fps, skipped_fps,
+               detection_fps, detection_enabled,
+               capture_pid, ffmpeg_pid,
+               severity, status, message
+        FROM camera_health
         ORDER BY _timestamp DESC
         LIMIT 50
 
     default:
       sql: |
-        SELECT *
-        FROM frigate
+        SELECT service, component, event_type, resource_id,
+               camera, camera_fps, process_fps, skipped_fps,
+               detection_fps, detection_enabled,
+               capture_pid, ffmpeg_pid,
+               severity, status, message
+        FROM camera_health
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -67,7 +98,6 @@ object_detection:
     motion: 7
     visto: 6
     vista: 6
-    apareceu: 6
     apareceu: 6
 
   queries:
