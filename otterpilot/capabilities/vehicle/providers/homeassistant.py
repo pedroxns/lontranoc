@@ -4,7 +4,8 @@ import requests
 import yaml
 
 from otterpilot.core.config import config_path, get_env
-from otterpilot.knowledge.providers.openobserve.ingest import emit
+from otterpilot.core.eventbus import EventEnvelope
+from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
 
 CONFIG_FILE = config_path("vehicle.yaml")
@@ -141,83 +142,115 @@ def build_snapshot(config, states):
     }
 
 
-def emit_snapshot(snapshot):
+def emit_snapshot(snapshot: dict) -> None:
     tires = snapshot["tires"]
     doors = snapshot["doors"]
     fuel = snapshot["fuel"]
     location = snapshot["location"]
 
-    tire_values = [v for v in tires.values() if isinstance(v, (int, float))]
-    min_tire = min(tire_values) if tire_values else None
+    tire_values = [
+        tires.get("front_left_psi"),
+        tires.get("front_right_psi"),
+        tires.get("rear_left_psi"),
+        tires.get("rear_right_psi"),
+    ]
+
+    valid_tires = [
+        value
+        for value in tire_values
+        if isinstance(value, (int, float))
+    ]
+
+    min_tire = min(valid_tires) if valid_tires else None
 
     any_door_open = any(
-        doors.get(k) is True
-        for k in [
+        doors.get(key) is True
+        for key in (
             "driver_open",
             "passenger_open",
             "rear_left_open",
             "rear_right_open",
             "trunk_open",
             "hood_open",
-        ]
+        )
     )
 
-    emit(
-        stream="vehicle",
-        service="vehicle",
-        component="car",
+    event = EventEnvelope(
+        capability="vehicle",
+        connector="homeassistant",
         event_type="snapshot",
+        resource_id=snapshot["vehicle_id"],
         severity="info",
         status="ok",
         message=f"Vehicle snapshot: {snapshot['vehicle_id']}",
-        timestamp=now_iso(),
-        schema_version="1.0",
+        payload={
+            "vehicle_id": snapshot["vehicle_id"],
+            "manufacturer": snapshot["manufacturer"],
+            "model": snapshot["model"],
 
-        vehicle_id=snapshot["vehicle_id"],
-        manufacturer=snapshot["manufacturer"],
-        model=snapshot["model"],
+            "zone": location.get("zone"),
+            "latitude": location.get("latitude"),
+            "longitude": location.get("longitude"),
+            "gps_accuracy": location.get("gps_accuracy"),
 
-        zone=location.get("zone"),
-        latitude=location.get("latitude"),
-        longitude=location.get("longitude"),
-        gps_accuracy=location.get("gps_accuracy"),
+            "range_km": fuel.get("range_km"),
+            "fuel_percent": fuel.get("percent"),
+            "fuel_liters": fuel.get("liters"),
+            "average_consumption_km_l": fuel.get(
+                "average_consumption_km_l"
+            ),
 
-        range_km=fuel.get("range_km"),
-        fuel_percent=fuel.get("percent"),
-        fuel_liters=fuel.get("liters"),
-        average_consumption_km_l=fuel.get("average_consumption_km_l"),
+            "engine_running": snapshot["engine"].get("running"),
+            "engine_temp_c": snapshot["engine"].get(
+                "temperature_c"
+            ),
 
-        engine_running=snapshot["engine"].get("running"),
-        engine_temp_c=snapshot["engine"].get("temperature_c"),
+            "aux_battery_voltage": snapshot["battery"].get(
+                "aux_voltage"
+            ),
+            "aux_battery_percent": snapshot["battery"].get(
+                "aux_percent"
+            ),
+            "hybrid_battery_percent": snapshot["battery"].get(
+                "hybrid_percent"
+            ),
 
-        aux_battery_voltage=snapshot["battery"].get("aux_voltage"),
-        aux_battery_percent=snapshot["battery"].get("aux_percent"),
-        hybrid_battery_percent=snapshot["battery"].get("hybrid_percent"),
+            "odometer_km": snapshot["maintenance"].get(
+                "odometer_km"
+            ),
+            "distance_to_service_km": snapshot["maintenance"].get(
+                "distance_to_service_km"
+            ),
+            "days_to_service": snapshot["maintenance"].get(
+                "days_to_service"
+            ),
 
-        odometer_km=snapshot["maintenance"].get("odometer_km"),
-        distance_to_service_km=snapshot["maintenance"].get("distance_to_service_km"),
-        days_to_service=snapshot["maintenance"].get("days_to_service"),
+            "tire_front_left_psi": tires.get("front_left_psi"),
+            "tire_front_right_psi": tires.get("front_right_psi"),
+            "tire_rear_left_psi": tires.get("rear_left_psi"),
+            "tire_rear_right_psi": tires.get("rear_right_psi"),
+            "tire_min_psi": min_tire,
 
-        tire_front_left_psi=tires.get("front_left_psi"),
-        tire_front_right_psi=tires.get("front_right_psi"),
-        tire_rear_left_psi=tires.get("rear_left_psi"),
-        tire_rear_right_psi=tires.get("rear_right_psi"),
-        tire_min_psi=min_tire,
+            "locked": doors.get("locked"),
+            "any_door_open": any_door_open,
+            "door_driver_open": doors.get("driver_open"),
+            "door_passenger_open": doors.get("passenger_open"),
+            "door_rear_left_open": doors.get("rear_left_open"),
+            "door_rear_right_open": doors.get("rear_right_open"),
+            "door_trunk_open": doors.get("trunk_open"),
+            "door_hood_open": doors.get("hood_open"),
 
-        locked=doors.get("locked"),
-        any_door_open=any_door_open,
-        door_driver_open=doors.get("driver_open"),
-        door_passenger_open=doors.get("passenger_open"),
-        door_rear_left_open=doors.get("rear_left_open"),
-        door_rear_right_open=doors.get("rear_right_open"),
-        door_trunk_open=doors.get("trunk_open"),
-        door_hood_open=doors.get("hood_open"),
+            "last_update": snapshot["metadata"].get("last_update"),
+            "update_interval_s": snapshot["metadata"].get(
+                "update_interval_s"
+            ),
 
-        last_update=snapshot["metadata"].get("last_update"),
-        update_interval_s=snapshot["metadata"].get("update_interval_s"),
-
-        snapshot=snapshot,
+            "snapshot": snapshot,
+        },
     )
+
+    bus = build_default_event_bus()
+    bus.publish(event)
 
 def collect() -> dict:
     """Coleta e normaliza o estado atual do veículo via Home Assistant."""
