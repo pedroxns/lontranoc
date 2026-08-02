@@ -70,7 +70,7 @@ frigate:
         ORDER BY _timestamp DESC
         LIMIT 50
 
-adguard:
+dns:
   keywords:
     adguard: 10
     dns: 10
@@ -107,7 +107,7 @@ adguard:
                instance, node, running, protection_enabled,
                health_score, health_status, blocked_percent,
                querylog_error_count, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -123,7 +123,7 @@ adguard:
         SELECT service, component, event_type, severity, status,
                instance, num_dns_queries, num_blocked_filtering,
                blocked_percent, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -140,7 +140,7 @@ adguard:
       sql: |
         SELECT service, component, event_type, severity, status,
                instance, num_dns_queries, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -155,9 +155,9 @@ adguard:
         nxdomain: 8
       sql: |
         SELECT service, component, event_type, severity, status,
-               instance, avg_processing_time, querylog_error_count,
+               instance, querylog_error_count,
                querylog_error_domains, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -167,7 +167,7 @@ adguard:
                instance, running, protection_enabled, health_score,
                health_status, num_dns_queries, num_blocked_filtering,
                blocked_percent, querylog_error_count, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
