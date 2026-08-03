@@ -33,7 +33,7 @@ class ConnectorExecutor:
         self,
         connector_id: str,
         capability_id: str,
-    ) -> dict[str, Any]:
+    ) -> Any:
         connector = self._metadata_registry.get_connector(connector_id)
 
         if connector is None:
@@ -55,7 +55,7 @@ class ConnectorExecutor:
         self,
         connector_id: str,
         capability_id: str,
-        payload: dict[str, Any],
+        payload: Any,
     ) -> None:
         connector = self._metadata_registry.get_connector(connector_id)
 
@@ -77,7 +77,7 @@ class ConnectorExecutor:
         self,
         connector_id: str,
         capability_id: str,
-    ) -> dict[str, Any]:
+    ) -> Any:
         payload = self.collect(
             connector_id,
             capability_id,

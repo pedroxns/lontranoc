@@ -12,13 +12,13 @@ class ConnectorRuntime(Protocol):
     def collect(
         self,
         capability_id: str,
-    ) -> dict[str, Any]:
+    ) -> Any:
         """Coleta dados normalizados de uma capability."""
 
     def publish(
         self,
         capability_id: str,
-        payload: dict[str, Any],
+        payload: Any,
     ) -> None:
         """Publica os dados coletados no fluxo de conhecimento."""
 
