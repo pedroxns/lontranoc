@@ -9,6 +9,9 @@ from otterpilot.connectors.homeassistant.runtime import (
 from otterpilot.core.registry.runtime import (
     ConnectorRuntimeRegistry,
 )
+from otterpilot.connectors.adguard.runtime import (
+    AdGuardConnectorRuntime,
+)
 
 
 def build_default_runtime_registry() -> ConnectorRuntimeRegistry:
@@ -20,6 +23,9 @@ def build_default_runtime_registry() -> ConnectorRuntimeRegistry:
 
     registry.register(
         FrigateConnectorRuntime()
+    )
+    registry.register(
+    	AdGuardConnectorRuntime()
     )
 
     return registry

@@ -273,9 +273,8 @@ def build_error_event(instance, error):
 def publish_event(bus, event):
     bus.publish(event)
 
-
-def main():
-    bus = build_default_event_bus()
+def collect() -> list[EventEnvelope]:
+    events: list[EventEnvelope] = []
 
     for instance in get_instances():
         try:
@@ -286,26 +285,7 @@ def main():
             )
 
             event = collect_instance(instance)
-
-            print(
-                "Enviando AdGuard:",
-                instance["name"],
-                event.payload.get(
-                    "num_dns_queries"
-                ),
-                event.payload.get(
-                    "num_blocked_filtering"
-                ),
-                event.payload.get(
-                    "blocked_percent"
-                ),
-                flush=True,
-            )
-
-            publish_event(
-                bus,
-                event,
-            )
+            events.append(event)
 
         except Exception as error:
             print(
@@ -315,15 +295,44 @@ def main():
                 flush=True,
             )
 
-            error_event = build_error_event(
-                instance,
-                error,
+            events.append(
+                build_error_event(
+                    instance,
+                    error,
+                )
             )
 
-            publish_event(
-                bus,
-                error_event,
-            )
+    return events
+
+
+def publish(
+    events: list[EventEnvelope],
+) -> None:
+    bus = build_default_event_bus()
+
+    for event in events:
+        publish_event(
+            bus,
+            event,
+        )
+
+def main():
+    events = collect()
+
+    for event in events:
+        print(
+            "AdGuard:",
+            event.resource_id,
+            "=>",
+            event.status,
+            "| queries:",
+            event.payload.get("num_dns_queries"),
+            "| blocked:",
+            event.payload.get("blocked_percent"),
+            flush=True,
+        )
+
+    publish(events)
 
 
 if __name__ == "__main__":

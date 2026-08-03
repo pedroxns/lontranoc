@@ -14,6 +14,12 @@ DEFAULT_JOBS = (
         capability_id="camera_health",
         interval_seconds=60,
     ),
+    PollingJob(
+        job_id="adguard-dns",
+        connector_id="adguard",
+        capability_id="dns",
+        interval_seconds=60,
+    ),
 )
 
 
