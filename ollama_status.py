@@ -197,8 +197,8 @@ def get_gpu_info():
             "gpu_available": False,
             "gpu_error": str(error),
         }
-
-def main():
+    
+def collect() -> dict:
     model_info = get_loaded_model_info()
     latency = measure_latency()
     gpu_info = get_gpu_info()
@@ -227,6 +227,7 @@ def main():
         ),
         "response": latency.get("response"),
     }
+
     if "error" in model_info:
         payload["model_error"] = model_info["error"]
 
@@ -235,6 +236,8 @@ def main():
 
     payload["summary"] = build_summary(payload)
 
+    return payload
+def publish(payload: dict) -> None:
     publish_mqtt(payload)
 
     emit(
@@ -260,8 +263,17 @@ def main():
         summary=payload.get("summary"),
     )
 
-    print(json.dumps(payload, indent=2, ensure_ascii=False))
+def main():
+    payload = collect()
+    publish(payload)
 
+    print(
+        json.dumps(
+            payload,
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
 
 if __name__ == "__main__":
     main()

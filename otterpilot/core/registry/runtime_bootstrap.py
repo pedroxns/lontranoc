@@ -12,6 +12,9 @@ from otterpilot.core.registry.runtime import (
 from otterpilot.connectors.adguard.runtime import (
     AdGuardConnectorRuntime,
 )
+from otterpilot.connectors.ollama.runtime import (
+    OllamaConnectorRuntime,
+)
 
 
 def build_default_runtime_registry() -> ConnectorRuntimeRegistry:
@@ -26,6 +29,9 @@ def build_default_runtime_registry() -> ConnectorRuntimeRegistry:
     )
     registry.register(
     	AdGuardConnectorRuntime()
+    )
+    registry.register(
+    OllamaConnectorRuntime()
     )
 
     return registry

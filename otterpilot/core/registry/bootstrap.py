@@ -13,7 +13,14 @@ from otterpilot.connectors.frigate.definition import FRIGATE_CONNECTOR
 from otterpilot.connectors.homeassistant.definition import (
     HOMEASSISTANT_CONNECTOR,
 )
+from otterpilot.capabilities.llm_runtime.definition import (
+    LLM_RUNTIME_CAPABILITY,
+)
+from otterpilot.connectors.ollama.definition import (
+    OLLAMA_CONNECTOR,
+)
 from otterpilot.core.registry import OtterPilotRegistry
+
 
 
 def build_default_registry() -> OtterPilotRegistry:
@@ -25,6 +32,7 @@ def build_default_registry() -> OtterPilotRegistry:
             DNS_CAPABILITY,
             OBJECT_DETECTION_CAPABILITY,
             CAMERA_HEALTH_CAPABILITY,
+            LLM_RUNTIME_CAPABILITY,
         )
     )
 
@@ -33,6 +41,7 @@ def build_default_registry() -> OtterPilotRegistry:
             HOMEASSISTANT_CONNECTOR,
             ADGUARD_CONNECTOR,
             FRIGATE_CONNECTOR,
+            OLLAMA_CONNECTOR,
         )
     )
 

@@ -26,6 +26,12 @@ DEFAULT_JOBS = (
         capability_id="vehicle",
         interval_seconds=300,
     ),
+    PollingJob(
+    job_id="ollama-llm-runtime",
+    connector_id="ollama",
+    capability_id="llm_runtime",
+    interval_seconds=180,
+    ),
 )
 
 
