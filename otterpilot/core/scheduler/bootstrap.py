@@ -20,6 +20,12 @@ DEFAULT_JOBS = (
         capability_id="dns",
         interval_seconds=60,
     ),
+    PollingJob(
+        job_id="homeassistant-vehicle",
+        connector_id="homeassistant",
+        capability_id="vehicle",
+        interval_seconds=300,
+    ),
 )
 
 
