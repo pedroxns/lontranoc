@@ -7,6 +7,7 @@ from otterpilot.capabilities.dns.definition import DNS_CAPABILITY
 from otterpilot.capabilities.object_detection.definition import (
     OBJECT_DETECTION_CAPABILITY,
 )
+from otterpilot.capabilities.ups.definition import UPS_CAPABILITY
 from otterpilot.capabilities.vehicle.definition import VEHICLE_CAPABILITY
 from otterpilot.connectors.adguard.definition import ADGUARD_CONNECTOR
 from otterpilot.connectors.frigate.definition import FRIGATE_CONNECTOR
@@ -19,7 +20,7 @@ from otterpilot.capabilities.llm_runtime.definition import (
 from otterpilot.connectors.ollama.definition import (
     OLLAMA_CONNECTOR,
 )
-from otterpilot.core.registry import OtterPilotRegistry
+from otterpilot.core.registry import OtterPilotRegistry, registry
 
 
 
@@ -33,6 +34,7 @@ def build_default_registry() -> OtterPilotRegistry:
             OBJECT_DETECTION_CAPABILITY,
             CAMERA_HEALTH_CAPABILITY,
             LLM_RUNTIME_CAPABILITY,
+            UPS_CAPABILITY,
         )
     )
 

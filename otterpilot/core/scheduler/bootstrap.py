@@ -24,13 +24,19 @@ DEFAULT_JOBS = (
         job_id="homeassistant-vehicle",
         connector_id="homeassistant",
         capability_id="vehicle",
-        interval_seconds=300,
+        interval_seconds=180,
     ),
     PollingJob(
-    job_id="ollama-llm-runtime",
-    connector_id="ollama",
-    capability_id="llm_runtime",
-    interval_seconds=180,
+        job_id="ollama-llm-runtime",
+        connector_id="ollama",
+        capability_id="llm_runtime",
+        interval_seconds=120,
+    ),
+    PollingJob(
+        job_id="homeassistant-ups",
+        connector_id="homeassistant",
+        capability_id="ups",
+        interval_seconds=30,
     ),
 )
 

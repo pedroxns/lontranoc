@@ -10,7 +10,10 @@ HOMEASSISTANT_CONNECTOR = ConnectorDefinition(
     description=(
         "Connects Home Assistant entities and services to OtterPilot."
     ),
-    capabilities=("vehicle",),
+    capabilities=(
+    "vehicle",
+    "ups",
+    ),
     status=ComponentStatus.ENABLED,
     read_only_default=True,
     supports_discovery=True,
