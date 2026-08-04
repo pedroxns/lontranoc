@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ollama_status import (
+from otterpilot.integrations.ollama.status_provider import (
     collect as collect_llm_runtime,
     publish as publish_llm_runtime,
 )
