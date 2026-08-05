@@ -19,8 +19,6 @@ IMPORTANT_ENTITIES = {
     "gpu_mem": "sensor.ollama_gpu_mem_percent_mqtt",
     "ups_status": "sensor.dnb_status",
     "ups_battery": "sensor.dnb_carga_da_bateria",
-    "z2m_1": "binary_sensor.zigbee2mqtt_bridge_connection_state_4",
-    "z2m_2": "binary_sensor.zigbee2mqtt_bridge_connection_state_3",
     "frigate": "sensor.frigate_status"
 }
 
@@ -63,8 +61,6 @@ def build_summary(entities):
     ups_status = str(entities.get("ups_status", "")).lower()
     ups_battery = to_float(entities.get("ups_battery"))
     frigate = str(entities.get("frigate", "")).lower()
-    z2m_1 = entities.get("z2m_1")
-    z2m_2 = entities.get("z2m_2")
 
     if rack_temp >= 45:
         alerts.append(f"rack quente ({rack_temp:.1f}°C)")
@@ -84,12 +80,6 @@ def build_summary(entities):
     if ups_battery <= 30:
         alerts.append(f"bateria do nobreak baixa ({ups_battery:.0f}%)")
 
-    if z2m_1 != "on":
-        alerts.append("Zigbee2MQTT 1 desconectado")
-
-    if z2m_2 != "on":
-        alerts.append("Zigbee2MQTT 2 desconectado")
-
     if frigate not in ["running", "ok", "online"]:
         alerts.append(f"Frigate em estado {entities.get('frigate')}")
 
@@ -101,7 +91,7 @@ def build_summary(entities):
         f"Ollama {ollama_status} com latência de {ollama_latency:.0f} ms, "
         f"GPU a {gpu_temp:.0f}°C usando {gpu_mem:.1f}% da memória, "
         f"nobreak online com {ups_battery:.0f}% de bateria, "
-        f"Frigate e Zigbee2MQTT ativos."
+        f"Frigate ativo."
     )
 
 def publish_mqtt(payload):
