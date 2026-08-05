@@ -36,6 +36,12 @@ from otterpilot.core.registry import OtterPilotRegistry, registry
 from otterpilot.capabilities.environment_health.definition import (
     ENVIRONMENT_HEALTH_CAPABILITY,
 )
+from otterpilot.capabilities.zigbee_health.definition import (
+    ZIGBEE_HEALTH_CAPABILITY,
+)
+from otterpilot.connectors.zigbee2mqtt.definition import (
+    ZIGBEE2MQTT_CONNECTOR,
+)
 
 
 
@@ -53,6 +59,7 @@ def build_default_registry() -> OtterPilotRegistry:
             HOST_HEALTH_CAPABILITY,
             VIRTUALIZATION_CAPABILITY,
             ENVIRONMENT_HEALTH_CAPABILITY,
+            ZIGBEE_HEALTH_CAPABILITY,
         )
     )
 
@@ -63,6 +70,7 @@ def build_default_registry() -> OtterPilotRegistry:
             FRIGATE_CONNECTOR,
             OLLAMA_CONNECTOR,
             PROXMOX_CONNECTOR,
+            ZIGBEE2MQTT_CONNECTOR,
         )
     )
 
