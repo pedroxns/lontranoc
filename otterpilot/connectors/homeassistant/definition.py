@@ -13,6 +13,7 @@ HOMEASSISTANT_CONNECTOR = ConnectorDefinition(
     capabilities=(
     "vehicle",
     "ups",
+    "environment_health",
     ),
     status=ComponentStatus.ENABLED,
     read_only_default=True,

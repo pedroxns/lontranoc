@@ -33,6 +33,9 @@ from otterpilot.connectors.proxmox.runtime import (
     ProxmoxConnectorRuntime,
 )
 from otterpilot.core.registry import OtterPilotRegistry, registry
+from otterpilot.capabilities.environment_health.definition import (
+    ENVIRONMENT_HEALTH_CAPABILITY,
+)
 
 
 
@@ -49,6 +52,7 @@ def build_default_registry() -> OtterPilotRegistry:
             UPS_CAPABILITY,
             HOST_HEALTH_CAPABILITY,
             VIRTUALIZATION_CAPABILITY,
+            ENVIRONMENT_HEALTH_CAPABILITY,
         )
     )
 

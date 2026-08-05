@@ -46,7 +46,6 @@ DEFAULT_JOBS = (
     ),
 )
 
-
 def build_default_scheduler() -> PollingScheduler:
     return PollingScheduler(
         executor=build_default_executor(),

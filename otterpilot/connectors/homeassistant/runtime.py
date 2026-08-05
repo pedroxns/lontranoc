@@ -10,6 +10,10 @@ from otterpilot.capabilities.ups.providers.homeassistant import (
     collect as collect_ups,
     publish as publish_ups,
 )
+from otterpilot.capabilities.environment_health.providers.homeassistant import (
+    collect as collect_environment_health,
+    publish as publish_environment_health,
+)
 
 
 class HomeAssistantConnectorRuntime:
@@ -25,6 +29,8 @@ class HomeAssistantConnectorRuntime:
             return collect_vehicle()
         if capability_id == "ups":
             return collect_ups()
+        if capability_id == "environment_health":
+            return collect_environment_health()
 
         raise ValueError(
             f"Capability não suportada pelo Connector "
@@ -41,6 +47,9 @@ class HomeAssistantConnectorRuntime:
             return
         if capability_id == "ups":
             publish_ups(payload)
+            return
+        if capability_id == "environment_health":
+            publish_environment_health(payload)
             return
 
         raise ValueError(
