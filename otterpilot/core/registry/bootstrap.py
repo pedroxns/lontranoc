@@ -20,6 +20,18 @@ from otterpilot.capabilities.llm_runtime.definition import (
 from otterpilot.connectors.ollama.definition import (
     OLLAMA_CONNECTOR,
 )
+from otterpilot.capabilities.host_health.definition import (
+    HOST_HEALTH_CAPABILITY,
+)
+from otterpilot.capabilities.virtualization.definition import (
+    VIRTUALIZATION_CAPABILITY,
+)
+from otterpilot.connectors.proxmox.definition import (
+    PROXMOX_CONNECTOR,
+)
+from otterpilot.connectors.proxmox.runtime import (
+    ProxmoxConnectorRuntime,
+)
 from otterpilot.core.registry import OtterPilotRegistry, registry
 
 
@@ -35,6 +47,8 @@ def build_default_registry() -> OtterPilotRegistry:
             CAMERA_HEALTH_CAPABILITY,
             LLM_RUNTIME_CAPABILITY,
             UPS_CAPABILITY,
+            HOST_HEALTH_CAPABILITY,
+            VIRTUALIZATION_CAPABILITY,
         )
     )
 
@@ -44,6 +58,7 @@ def build_default_registry() -> OtterPilotRegistry:
             ADGUARD_CONNECTOR,
             FRIGATE_CONNECTOR,
             OLLAMA_CONNECTOR,
+            PROXMOX_CONNECTOR,
         )
     )
 

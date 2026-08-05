@@ -38,6 +38,12 @@ DEFAULT_JOBS = (
         capability_id="ups",
         interval_seconds=30,
     ),
+    PollingJob(
+        job_id="proxmox-host-health",
+        connector_id="proxmox",
+        capability_id="host_health",
+        interval_seconds=60,
+    ),
 )
 
 
