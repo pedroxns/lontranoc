@@ -19,9 +19,6 @@ IMPORTANT_ENTITIES = {
     "gpu_mem": "sensor.ollama_gpu_mem_percent_mqtt",
     "ups_status": "sensor.dnb_status",
     "ups_battery": "sensor.dnb_carga_da_bateria",
-    "matx_cpu": "sensor.192_168_68_5_cpu_usage",
-    "mitx_cpu": "sensor.192_168_68_200_cpu_usage",
-    "mini_cpu": "sensor.192_168_68_100_cpu_usage",
     "z2m_1": "binary_sensor.zigbee2mqtt_bridge_connection_state_4",
     "z2m_2": "binary_sensor.zigbee2mqtt_bridge_connection_state_3",
     "frigate": "sensor.frigate_status"
@@ -133,9 +130,6 @@ for key in [
     "gpu_mem",
     "ollama_latency",
     "ups_battery",
-    "matx_cpu",
-    "mitx_cpu",
-    "mini_cpu",
 ]:
     numeric_entities[key] = to_float(result.get(key))
 
