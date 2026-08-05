@@ -16,6 +16,8 @@ class OpenObserveEventSubscriber:
         metadata = make_json_safe(event.metadata)
 
         emit(
+            connector=event.connector,
+            capability=event.capability,
             stream=event.capability,
             service=event.connector,
             component=event.capability,
