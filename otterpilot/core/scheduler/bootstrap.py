@@ -44,6 +44,12 @@ DEFAULT_JOBS = (
         capability_id="host_health",
         interval_seconds=60,
     ),
+    PollingJob(
+        job_id="homeassistant-environment-health",
+        connector_id="homeassistant",
+        capability_id="environment_health",
+        interval_seconds=60,
+    ),
 )
 
 def build_default_scheduler() -> PollingScheduler:

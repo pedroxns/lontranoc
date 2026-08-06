@@ -171,6 +171,18 @@ def health_from_latency(latency_ms, ok):
         return "Fica esperto"
     return "Deu ruim"
 
+def status_from_latency(latency_ms, ok):
+    if not ok:
+        return "critical", "critical"
+
+    if latency_ms < 3000:
+        return "healthy", "info"
+
+    if latency_ms < 7000:
+        return "degraded", "warning"
+
+    return "critical", "critical"
+
 def get_gpu_info():
     try:
         cmd = [
@@ -241,14 +253,18 @@ def collect() -> dict:
 
 def publish(payload: dict) -> None:
     publish_mqtt(payload)
+    status, severity = status_from_latency(
+    payload.get("latency_ms", 999999),
+    payload.get("latency_ok", False),
+    )
 
     event = EventEnvelope(
         capability="llm_runtime",
         connector="ollama",
         event_type="status_snapshot",
         resource_id="ollama",
-        severity="info",
-        status=payload.get("health", "unknown"),
+        severity=severity,
+        status=status,
         message="Ollama status snapshot",
         payload={
             "model": payload.get("model"),
