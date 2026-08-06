@@ -3,7 +3,8 @@ import os
 import time
 import subprocess
 from datetime import datetime, timezone
-from openobserve_ingest import emit
+from otterpilot.core.eventbus import EventEnvelope
+from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
 import requests
 from dotenv import load_dotenv
@@ -237,31 +238,39 @@ def collect() -> dict:
     payload["summary"] = build_summary(payload)
 
     return payload
+
 def publish(payload: dict) -> None:
     publish_mqtt(payload)
 
-    emit(
-        stream="ollama",
-        service="ollama",
-        component="telemetry",
+    event = EventEnvelope(
+        capability="llm_runtime",
+        connector="ollama",
         event_type="status_snapshot",
+        resource_id="ollama",
         severity="info",
         status=payload.get("health", "unknown"),
         message="Ollama status snapshot",
-        schema_version="1.0",
-        model=payload.get("model"),
-        loaded=payload.get("loaded"),
-        latency_ms=payload.get("latency_ms"),
-        latency_ok=payload.get("latency_ok"),
-        gpu_available=payload.get("gpu_available"),
-        gpu_temp=payload.get("gpu_temp"),
-        gpu_util=payload.get("gpu_util"),
-        gpu_mem_used_mb=payload.get("gpu_mem_used_mb"),
-        gpu_mem_total_mb=payload.get("gpu_mem_total_mb"),
-        gpu_mem_percent=payload.get("gpu_mem_percent"),
-        size_vram_gb=payload.get("size_vram_gb"),
-        summary=payload.get("summary"),
+        payload={
+            "model": payload.get("model"),
+            "loaded": payload.get("loaded"),
+            "latency_ms": payload.get("latency_ms"),
+            "latency_ok": payload.get("latency_ok"),
+            "gpu_available": payload.get("gpu_available"),
+            "gpu_temp": payload.get("gpu_temp"),
+            "gpu_util": payload.get("gpu_util"),
+            "gpu_mem_used_mb": payload.get("gpu_mem_used_mb"),
+            "gpu_mem_total_mb": payload.get("gpu_mem_total_mb"),
+            "gpu_mem_percent": payload.get("gpu_mem_percent"),
+            "size_vram_gb": payload.get("size_vram_gb"),
+            "summary": payload.get("summary"),
+        },
+        metadata={
+            "schema_version": "1.0",
+        },
     )
+
+    bus = build_default_event_bus()
+    bus.publish(event)
 
 def main():
     payload = collect()
