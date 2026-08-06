@@ -8,20 +8,11 @@ from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
 import requests
 from dotenv import load_dotenv
-import paho.mqtt.client as mqtt
-
 
 load_dotenv("/opt/lontranoc/.env")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-
-MQTT_HOST = os.getenv("MQTT_HOST")
-MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
-MQTT_USERNAME = os.getenv("MQTT_USERNAME", "").strip()
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "").strip()
-MQTT_TOPIC = os.getenv("MQTT_TOPIC", "homelab/ollama/status")
-
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -115,30 +106,6 @@ def measure_latency():
             "error": f"generate_failed: {error}",
         }
 
-
-def publish_mqtt(payload):
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-
-    if MQTT_USERNAME:
-        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-
-    client.connect(MQTT_HOST, MQTT_PORT, 60)
-    client.loop_start()
-
-    result = client.publish(
-        MQTT_TOPIC,
-        json.dumps(payload, ensure_ascii=False),
-        qos=1,
-        retain=True,
-    )
-
-    result.wait_for_publish(timeout=10)
-
-    if not result.is_published():
-        raise RuntimeError("Falha ao publicar mensagem MQTT")
-
-    client.loop_stop()
-    client.disconnect()
 
 def build_summary(payload):
     if not payload.get("gpu_available"):
@@ -252,7 +219,6 @@ def collect() -> dict:
     return payload
 
 def publish(payload: dict) -> None:
-    publish_mqtt(payload)
     status, severity = status_from_latency(
     payload.get("latency_ms", 999999),
     payload.get("latency_ok", False),
