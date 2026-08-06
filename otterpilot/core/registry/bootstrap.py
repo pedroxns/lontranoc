@@ -42,6 +42,12 @@ from otterpilot.capabilities.zigbee_health.definition import (
 from otterpilot.connectors.zigbee2mqtt.definition import (
     ZIGBEE2MQTT_CONNECTOR,
 )
+from otterpilot.capabilities.system_health.definition import (
+    SYSTEM_HEALTH_CAPABILITY,
+)
+from otterpilot.connectors.otterpilot.definition import (
+    OTTERPILOT_CONNECTOR,
+)
 
 
 
@@ -60,6 +66,7 @@ def build_default_registry() -> OtterPilotRegistry:
             VIRTUALIZATION_CAPABILITY,
             ENVIRONMENT_HEALTH_CAPABILITY,
             ZIGBEE_HEALTH_CAPABILITY,
+            SYSTEM_HEALTH_CAPABILITY,
         )
     )
 
@@ -71,6 +78,7 @@ def build_default_registry() -> OtterPilotRegistry:
             OLLAMA_CONNECTOR,
             PROXMOX_CONNECTOR,
             ZIGBEE2MQTT_CONNECTOR,
+            OTTERPILOT_CONNECTOR,            
         )
     )
 

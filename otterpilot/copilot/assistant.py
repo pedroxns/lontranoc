@@ -4,12 +4,10 @@ import time
 from datetime import datetime, timezone
 from xmlrpc import client
 from otterpilot.core.config import get_env
-from otterpilot.core.config import get_env
 from otterpilot.routing.query_context import build_query_context
 
 import paho.mqtt.client as mqtt
 import requests
-from dotenv import load_dotenv
 from uuid import uuid4
 from otterpilot.knowledge.providers.openobserve.ingest import emit
 from otterpilot.knowledge.providers.openobserve.search import search_logs
@@ -17,8 +15,7 @@ from otterpilot.routing.context_router import route_context
 from otterpilot.knowledge.search import search_context, build_search_summary
 from otterpilot.analysis.engine import analyze_search_result
 from otterpilot.core.serialization import make_json_safe
-
-load_dotenv("/opt/otterpilot/.env")
+from otterpilot.state import build_default_state_store
 
 OLLAMA_URL = get_env("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = get_env("OLLAMA_MODEL", "qwen2.5:7b-instruct")
@@ -31,14 +28,6 @@ LEGACY_RESPONSE_TOPIC = "homelab/lontranoc/response"
 
 REQUEST_TOPIC = "otterpilot/request"
 RESPONSE_TOPIC = "otterpilot/response"
-
-CONTEXT_TOPICS = [
-    "homelab/status/raw",
-    "homelab/ollama/status",
-]
-
-context_messages = {}
-
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -128,46 +117,71 @@ def get_historical_context(question: str, request_id: str):
         "sample_events": result["rows"][:5],
     }
 
+def get_current_context() -> dict:
+    store = build_default_state_store()
+
+    states = store.list_all()
+
+    system_health = None
+    resources = []
+
+    for state in states:
+        if (
+            state["connector"] == "otterpilot"
+            and state["capability"] == "system_health"
+            and state["resource_id"] == "homelab"
+        ):
+            system_health = state
+            continue
+
+        resources.append(
+            {
+                "connector": state["connector"],
+                "capability": state["capability"],
+                "resource_id": state["resource_id"],
+                "status": state["status"],
+                "severity": state["severity"],
+                "timestamp": state["timestamp"],
+                "message": state["message"],
+                "payload": state["payload"],
+            }
+        )
+
+    return {
+        "system_health": system_health,
+        "resources": resources,
+    }
+
 def ask_ollama(question, context, request_id):
     historical_events = get_historical_context(question, request_id)
     prompt = f"""
-Você é o OtterPilot, um copiloto inteligente para homelabs, infraestrutura self-hosted e pequenos ambientes de TI.
+    Você é o OtterPilot, um copiloto inteligente para homelabs, infraestrutura self-hosted e pequenos ambientes de TI.
 
-Seu objetivo é ajudar o usuário a compreender o estado do ambiente, correlacionar eventos, identificar problemas e sugerir ações práticas.
+    Seu objetivo é ajudar o usuário a compreender o estado do ambiente, correlacionar eventos, identificar problemas e sugerir ações práticas.
 
-Você nunca inventa informações.
-Sempre utiliza primeiro os dados coletados do ambiente.
-Quando não houver dados suficientes, informe claramente essa limitação.
+    Você nunca inventa informações.
+    Sempre utiliza primeiro os dados coletados do ambiente.
+    Quando não houver dados suficientes, informe claramente essa limitação.
 
-Ambiente monitorado:
-- matx_cpu = ryzen5 5600g - servidor Proxmox principal com RTX 3060 e Ollama.
-- mitx_cpu = ryzen4 4600g - servidor Frigate com Google Coral.
-- mini_cpu = intel n150 - servidor Beelink Mini.
-- rack_temp = temperatura interna do rack.
-- ups_status = estado do nobreak Intelbras.
-- ups_battery = carga da bateria do nobreak.
-- z2m_1 e z2m_2 = instâncias Zigbee2MQTT. z2m1 - roda no mATX e z2m2 roda no mITX.
-- frigate = sistema de monitoramento por câmeras.
-- ollama_status = estado do serviço de IA.
-- ollama_latency = latência da IA.
-- gpu_temp = temperatura da GPU.
-- gpu_mem = uso de memória da GPU.
+    O bloco "Estado atual do ambiente" representa o estado corrente conhecido dos recursos monitorados.
+    O bloco "Eventos históricos do OpenObserve" representa eventos e ocorrências históricas recuperados para a pergunta.
 
+    Estado atual do ambiente:
+    {json.dumps(make_json_safe(context), indent=2, ensure_ascii=False)}
 
-Dados atuais via MQTT:
-{json.dumps(make_json_safe(context), indent=2, ensure_ascii=False)}
+    Eventos históricos do OpenObserve:
+    {json.dumps(make_json_safe(historical_events), indent=2, ensure_ascii=False)}
 
-Eventos históricos do OpenObserve:
-{json.dumps(make_json_safe(historical_events), indent=2, ensure_ascii=False)}
+    Pergunta:
+    {question}
 
-Pergunta:
-{question}
-
-Responda em português do Brasil, de forma correta e erudita.
-Seja técnico, útil e sarcástico e ironico.
-Não invente dados.
-Se houver alerta, destaque claramente.
-"""
+    Responda em português do Brasil, de forma correta e bem-humorada.
+    Seja técnico, útil, sarcástico e irônico quando apropriado.
+    Pode ser direto e levemente rude, mas nunca às custas da precisão técnica ou da clareza.
+    Não invente dados.
+    Não trate inferências como fatos.
+    Se houver alerta, destaque claramente.
+    """
 
     response = requests.post(
         f"{OLLAMA_URL}/api/generate",
@@ -186,25 +200,28 @@ Se houver alerta, destaque claramente.
 
 def publish_response(
     client,
-    question: str,
-    answer: str,
+    question,
+    answer,
+    request_id,
     response_topic: str = RESPONSE_TOPIC,
 ):
     payload = {
+        "request_id": request_id,
+        "timestamp": now_iso(),
         "question": question,
         "answer": answer,
     }
 
     client.publish(
         response_topic,
-        json.dumps(make_json_safe(payload), ensure_ascii=False),
+        json.dumps(
+            make_json_safe(payload),
+            ensure_ascii=False,
+        ),
     )
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    for topic in CONTEXT_TOPICS:
-        client.subscribe(topic)
-
     client.subscribe(LEGACY_REQUEST_TOPIC)
     client.subscribe(REQUEST_TOPIC)
 
@@ -217,13 +234,6 @@ def on_message(client, userdata, msg):
         response_topic = LEGACY_RESPONSE_TOPIC
     else:
         response_topic = RESPONSE_TOPIC
-
-    if topic in CONTEXT_TOPICS:
-        try:
-            context_messages[topic] = json.loads(payload_text)
-        except Exception:
-            context_messages[topic] = payload_text
-        return
 
     if topic in (REQUEST_TOPIC, LEGACY_REQUEST_TOPIC):
         try:
@@ -250,7 +260,13 @@ def on_message(client, userdata, msg):
 
         try:
             start = time.time()
-            answer = ask_ollama(question, context_messages, request_id)
+            current_context = get_current_context()
+            answer = ask_ollama(
+                question,
+                current_context,
+                request_id,
+            )
+            
             duration_ms = int((time.time() - start) * 1000)
 
             emit(
@@ -286,6 +302,7 @@ def on_message(client, userdata, msg):
             client,
             question,
             answer,
+            request_id,
             response_topic=response_topic,
         )
 

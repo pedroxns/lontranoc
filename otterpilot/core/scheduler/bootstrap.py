@@ -50,6 +50,12 @@ DEFAULT_JOBS = (
         capability_id="environment_health",
         interval_seconds=60,
     ),
+    PollingJob(
+        job_id="otterpilot-system-health",
+        connector_id="otterpilot",
+        capability_id="system_health",
+        interval_seconds=60,
+    ),
 )
 
 def build_default_scheduler() -> PollingScheduler:

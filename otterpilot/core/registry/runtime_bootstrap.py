@@ -18,6 +18,9 @@ from otterpilot.connectors.proxmox.runtime import (
 from otterpilot.core.registry.runtime import (
     ConnectorRuntimeRegistry,
 )
+from otterpilot.connectors.otterpilot.runtime import (
+    OtterPilotConnectorRuntime,
+)
 
 
 def build_default_runtime_registry() -> ConnectorRuntimeRegistry:
@@ -41,6 +44,10 @@ def build_default_runtime_registry() -> ConnectorRuntimeRegistry:
 
     registry.register(
         ProxmoxConnectorRuntime()
+    )
+
+    registry.register(
+        OtterPilotConnectorRuntime()
     )
 
     return registry

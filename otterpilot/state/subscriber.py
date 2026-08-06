@@ -13,6 +13,7 @@ STATEFUL_EVENT_TYPES = frozenset({
     "environment_snapshot",
     "bridge_snapshot",
     "camera_health",
+    "system_snapshot",
 })
 
 
