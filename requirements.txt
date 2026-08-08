@@ -1,0 +1,6 @@
+httpx
+paho-mqtt
+pydantic
+python-dotenv
+PyYAML
+requests

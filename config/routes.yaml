@@ -1,76 +1,141 @@
-frigate:
+camera_health:
   keywords:
-    frigate: 10
-    camera: 5
-    câmera: 5
-    câmeras: 5
-    cameras: 5
-    nvr: 7
-    rtsp: 7
-    ffmpeg: 6
-    cachorro: 8
-    cachorros: 8
-    dog: 8
-    dogs: 8
-    pessoa: 6
-    person: 6
-    carro: 6
-    car: 6
+    frigate: 3
+    camera: 8
+    câmera: 8
+    câmeras: 8
+    cameras: 8
+    nvr: 5
+    problema: 8
+    problemas: 8
+    erro: 8
+    falha: 8
+    offline: 10
+    caiu: 8
+    fps: 7
+    ffmpeg: 8
+    rtsp: 8
+    timeout: 7
 
   queries:
-    health:
+    problems:
       keywords:
-        houve: 4
-        aconteceu: 4
-        problema: 8
-        erro: 8
-        falha: 8
+        problema: 10
+        problemas: 10
+        erro: 9
+        falha: 9
+        offline: 10
+        caiu: 9
         ffmpeg: 8
         rtsp: 8
-        offline: 7
-        timeout: 7
+        timeout: 8
       sql: |
-        SELECT event_type, severity, component, camera, subsystem,
-               error_reason, message, service
-        FROM frigate
-        WHERE severity IN ('warning', 'error', 'critical')
+        SELECT service, component, event_type, resource_id,
+               camera, camera_fps, process_fps, skipped_fps,
+               detection_fps, detection_enabled,
+               capture_pid, ffmpeg_pid,
+               severity, status, message
+        FROM camera_health
+        WHERE status != 'healthy'
         ORDER BY _timestamp DESC
         LIMIT 50
 
+    health:
+      keywords:
+        status: 8
+        saúde: 8
+        saude: 8
+        como: 3
+        câmera: 5
+        camera: 5
+        câmeras: 5
+        cameras: 5
+        fps: 6
+      sql: |
+        SELECT service, component, event_type, resource_id,
+               camera, camera_fps, process_fps, skipped_fps,
+               detection_fps, detection_enabled,
+               capture_pid, ffmpeg_pid,
+               severity, status, message
+        FROM camera_health
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+    default:
+      sql: |
+        SELECT service, component, event_type, resource_id,
+               camera, camera_fps, process_fps, skipped_fps,
+               detection_fps, detection_enabled,
+               capture_pid, ffmpeg_pid,
+               severity, status, message
+        FROM camera_health
+        ORDER BY _timestamp DESC
+        LIMIT 50
+
+
+object_detection:
+  keywords:
+    frigate: 3
+    detecção: 10
+    deteccao: 10
+    detectar: 8
+    detectou: 8
+    detectado: 8
+    pessoa: 9
+    pessoas: 9
+    person: 9
+    carro: 8
+    car: 8
+    cachorro: 10
+    cachorros: 10
+    dog: 10
+    dogs: 10
+    animal: 8
+    animais: 8
+    objeto: 8
+    object: 8
+    movimento: 7
+    motion: 7
+    visto: 6
+    vista: 6
+    apareceu: 6
+
+  queries:
     detection:
       keywords:
-        detecção: 8
-        deteccao: 8
-        pessoa: 8
-        person: 8
+        detecção: 10
+        deteccao: 10
+        pessoa: 9
+        pessoas: 9
+        person: 9
         carro: 8
         car: 8
         cachorro: 10
         cachorros: 10
         dog: 10
         dogs: 10
-        animal: 7
-        animais: 7
-        objeto: 7
-        object: 7
-        movimento: 6
-        motion: 6
+        animal: 8
+        animais: 8
+        objeto: 8
+        object: 8
+        movimento: 7
+        motion: 7
       sql: |
-        SELECT service, event_type, severity, component, camera, label,
-               score, top_score, message
-        FROM frigate
-        WHERE component = 'detection'
+        SELECT service, component, event_type, resource_id,
+               camera, label, score, top_score, message
+        FROM object_detection
         ORDER BY _timestamp DESC
         LIMIT 50
 
     default:
       sql: |
-        SELECT *
-        FROM frigate
+        SELECT service, component, event_type, resource_id,
+               camera, label, score, top_score, message
+        FROM object_detection
         ORDER BY _timestamp DESC
         LIMIT 50
 
-adguard:
+dns:
   keywords:
     adguard: 10
     dns: 10
@@ -107,7 +172,7 @@ adguard:
                instance, node, running, protection_enabled,
                health_score, health_status, blocked_percent,
                querylog_error_count, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -123,7 +188,7 @@ adguard:
         SELECT service, component, event_type, severity, status,
                instance, num_dns_queries, num_blocked_filtering,
                blocked_percent, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -140,7 +205,7 @@ adguard:
       sql: |
         SELECT service, component, event_type, severity, status,
                instance, num_dns_queries, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -155,9 +220,9 @@ adguard:
         nxdomain: 8
       sql: |
         SELECT service, component, event_type, severity, status,
-               instance, avg_processing_time, querylog_error_count,
+               instance, querylog_error_count,
                querylog_error_domains, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 
@@ -167,7 +232,7 @@ adguard:
                instance, running, protection_enabled, health_score,
                health_status, num_dns_queries, num_blocked_filtering,
                blocked_percent, querylog_error_count, message
-        FROM adguard
+        FROM dns
         ORDER BY _timestamp DESC
         LIMIT 50
 

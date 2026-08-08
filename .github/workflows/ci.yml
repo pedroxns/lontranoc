@@ -1,0 +1,153 @@
+name: OtterPilot CI
+
+on:
+  push:
+    branches:
+      - main
+      - refactor/otterpilot
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - "3.13"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install \
+              pyyaml \
+              python-dotenv \
+              requests \
+              paho-mqtt \
+              pydantic \
+              httpx
+          fi
+
+      - name: Create test environment file
+        run: |
+          cat > .env <<'EOF'
+          MQTT_HOST=127.0.0.1
+          MQTT_PORT=1883
+          OPENOBSERVE_URL=http://127.0.0.1:5080
+          OPENOBSERVE_INGEST_USER=test
+          OPENOBSERVE_INGEST_PASS=test
+          OPENOBSERVE_READ_USER=test
+          OPENOBSERVE_READ_PASS=test
+          HA_URL=http://127.0.0.1:8123
+          HA_TOKEN=test
+          HA_TOKEN_VEHICLE=test
+          EOF
+
+      - name: Compile Python files
+        run: |
+          find . \
+            -path "./venv" -prune -o \
+            -path "./.git" -prune -o \
+            -path "./__pycache__" -prune -o \
+            -name "*.py" \
+            -print0 \
+            | xargs -0 python -m py_compile
+
+      - name: Validate YAML files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          yaml_files = list(Path(".").rglob("*.yaml")) + list(Path(".").rglob("*.yml"))
+
+          for file in yaml_files:
+              if ".git" in file.parts or "venv" in file.parts:
+                  continue
+
+              with file.open("r", encoding="utf-8") as handle:
+                  yaml.safe_load(handle)
+
+              print(f"YAML OK: {file}")
+          PY
+
+      - name: Test OtterPilot package
+        run: |
+          python - <<'PY'
+          import otterpilot
+
+          print("OtterPilot package imported")
+          print("Version:", otterpilot.__version__)
+          PY
+
+      - name: Test routing imports
+        run: |
+          python - <<'PY'
+          from otterpilot.routing.context_router import STREAM_ROUTES
+          from otterpilot.routing.query_context import build_query_context
+          from otterpilot.routing.time_parser import parse_time_window
+          from otterpilot.routing.entity_parser import parse_entities
+          from otterpilot.knowledge.search import build_search_summary
+
+          assert isinstance(STREAM_ROUTES, dict)
+          assert STREAM_ROUTES
+
+          context = build_query_context("Quantos km posso rodar?")
+
+          assert context["stream"] == "vehicle"
+          assert context["query_name"] == "fuel"
+
+          time_context = parse_time_window("o que houve hoje?")
+          assert isinstance(time_context, dict)
+
+          entity_context = parse_entities("algum cachorro apareceu hoje?")
+          assert isinstance(entity_context, dict)
+
+          print("Routing tests passed")
+          PY
+
+      - name: Test OtterPilot imports
+        run: |
+          python - <<'PY'
+          from otterpilot.routing.context_router import route_context
+          from otterpilot.routing.query_context import build_query_context
+          from otterpilot.knowledge.search import build_search_summary
+
+          stream, query_name, sql, score = route_context(
+              "Algum pneu precisa calibrar?"
+          )
+
+          assert stream == "vehicle"
+          assert query_name == "tires"
+          assert sql
+          assert score > 0
+
+          ctx = build_query_context("Quantos km posso rodar?")
+
+          assert ctx["stream"] == "vehicle"
+          assert ctx["query_name"] == "fuel"
+
+          print("OtterPilot imports OK")
+          PY
