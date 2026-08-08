@@ -45,10 +45,14 @@ STALE_AFTER_SECONDS = {
     "ups": 300,
     "dns": 300,
     "llm_runtime": 300,
-    "zigbee_health": 300,
+    "zigbee_health": 600,
     "environment_health": 300,
     "camera_health": 300,
     "vehicle": 1800,
+}
+
+NEUTRAL_STATUSES = {
+    "stopped",
 }
 
 
@@ -107,6 +111,9 @@ def _problem_impact(
 
     if status in CRITICAL_STATUSES:
         return capability_impact
+
+    if status in NEUTRAL_STATUSES:
+        return None
 
     # Estado desconhecido não é tratado como saudável.
     return "warning"

@@ -56,6 +56,12 @@ DEFAULT_JOBS = (
         capability_id="system_health",
         interval_seconds=60,
     ),
+    PollingJob(
+        job_id="proxmox-virtualization",
+        connector_id="proxmox",
+        capability_id="virtualization",
+        interval_seconds=60,
+    ),
 )
 
 def build_default_scheduler() -> PollingScheduler:

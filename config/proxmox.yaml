@@ -1,3 +1,126 @@
 proxmox:
   url: "https://192.168.68.5:8006"
   verify_ssl: false
+
+  workloads:
+    "lxc/100":
+      name: "OpenObserve-5080"
+      expected_state: running
+      importance: critical
+
+    "lxc/101":
+      name: "omada"
+      expected_state: running
+      
+    "lxc/102":
+      name: "managemydamnlife"
+      expected_state: stopped 
+
+    "lxc/103":
+      name: "uptimekuma"
+      expected_state: running
+
+    "lxc/10443":
+      name: "scrypted"
+      expected_state: running
+      importance: critical
+
+    "lxc/115":
+      name: "emqx"
+      expected_state: running
+      importance: critical
+
+    "lxc/3000":
+      name: "tasmocompiler"
+      expected_state: stopped
+
+    "lxc/305":
+      name: "omada"
+      expected_state: stopped
+
+    "lxc/320":
+      name: "Tailscale"
+      expected_state: running
+
+    "lxc/350":
+      name: "Adguard-3000"
+      expected_state: running
+      importance: critical
+
+    "lxc/351":
+      name: "Reverse-proxy"
+      expected_state: running
+      importance: critical
+
+    "lxc/355":
+      name: "AdGuard2-3000"
+      expected_state: running
+      importance: critical
+
+    "lxc/370":
+      name: "Homelable"
+      expected_state: stopped
+
+    "lxc/410":
+      name: "z2m-1"
+      expected_state: running
+      importance: critical
+
+    "lxc/420":
+      name: "z2m-2"
+      expected_state: running
+      importance: critical
+
+    "lxc/510":
+      name: "frigate"
+      expected_state: running
+      importance: critical
+
+    "lxc/803":
+      name: "peanut"
+      expected_state: running
+
+    "lxc/805":
+      name: "homepage"
+      expected_state: running
+
+    "lxc/810":
+      name: "freepbx"
+      expected_state: running
+      importance: critical
+
+    "lxc/820":
+      name: "homechart"
+      expected_state: stopped
+
+    "lxc/901":
+      name: "bar-assistant"
+      expected_state: stopped
+
+    "lxc/910":
+      name: "openwebui-ollama"
+      expected_state: running
+      importance: critical
+
+    "lxc/999":
+      name: "elegoo-connect"
+      expected_state: stopped
+
+    "qemu/210":
+      name: "haos"
+      expected_state: running
+      importance: critical
+
+    "qemu/300":
+      name: "OPNsense"
+      expected_state: stopped
+
+    "qemu/710":
+      name: "TrueNas"
+      expected_state: running
+      importance: critical
+
+    "qemu/720":
+      name: "pbs"
+      expected_state: running
+      importance: critical

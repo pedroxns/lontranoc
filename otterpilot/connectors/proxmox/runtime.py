@@ -6,6 +6,10 @@ from otterpilot.capabilities.host_health.providers.proxmox import (
     collect as collect_host_health,
     publish as publish_host_health,
 )
+from otterpilot.capabilities.virtualization.providers.proxmox import (
+    collect as collect_virtualization,
+    publish as publish_virtualization,
+)
 
 
 class ProxmoxConnectorRuntime:
@@ -17,6 +21,8 @@ class ProxmoxConnectorRuntime:
     ) -> Any:
         if capability_id == "host_health":
             return collect_host_health()
+        elif capability_id == "virtualization":
+            return collect_virtualization()
 
         raise ValueError(
             f"Capability não suportada pelo Connector "
@@ -30,6 +36,9 @@ class ProxmoxConnectorRuntime:
     ) -> None:
         if capability_id == "host_health":
             publish_host_health(payload)
+            return
+        elif capability_id == "virtualization":
+            publish_virtualization(payload)
             return
 
         raise ValueError(
