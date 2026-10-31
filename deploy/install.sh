@@ -31,6 +31,8 @@ if [[ ! -x "$PREFIX/venv/bin/python" ]]; then
 fi
 "$PREFIX/venv/bin/pip" install --quiet --upgrade pip
 "$PREFIX/venv/bin/pip" install --quiet --upgrade "$SRC"
+# O setuptools deixa artefatos de build (como root) dentro do checkout.
+rm -rf "$SRC/build" "$SRC"/*.egg-info
 
 install -d -m 0755 "$ETC" "$ETC/config"
 install -d -m 0700 "$ETC/credentials"
