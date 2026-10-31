@@ -282,12 +282,6 @@ def collect() -> list[EventEnvelope]:
 
     for instance in instances:
         try:
-            print(
-                f"Coletando {instance['name']} "
-                f"em {instance['url']}",
-                flush=True,
-            )
-
             event = collect_instance(instance)
             events.append(event)
 

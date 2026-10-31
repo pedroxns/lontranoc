@@ -84,8 +84,10 @@ class ConnectorExecutor:
             capability_id,
         )
 
+        published = payload
+
         if _is_inventory(payload):
-            payload = [
+            published = [
                 *payload,
                 build_inventory_event(
                     connector_id,
@@ -97,7 +99,7 @@ class ConnectorExecutor:
         self.publish(
             connector_id,
             capability_id,
-            payload,
+            published,
         )
 
         return payload

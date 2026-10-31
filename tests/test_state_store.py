@@ -87,3 +87,31 @@ def test_delete(store):
     store.upsert(snapshot("lxc/100"))
     assert store.delete(connector="proxmox", capability="virtualization", resource_id="lxc/100")
     assert not store.delete(connector="proxmox", capability="virtualization", resource_id="lxc/100")
+
+
+def test_executor_returns_collection_without_inventory_event():
+    from otterpilot.core.registry.executor import ConnectorExecutor
+    from otterpilot.core.registry.models import CapabilityDefinition, ConnectorDefinition
+    from otterpilot.core.registry.registry import OtterPilotRegistry
+    from otterpilot.core.registry.runtime import ConnectorRuntimeRegistry
+
+    class Runtime:
+        connector_id = "proxmox"
+        published = None
+
+        def collect(self, capability_id):
+            return [snapshot("lxc/100")]
+
+        def publish(self, capability_id, payload):
+            Runtime.published = payload
+
+    registry = OtterPilotRegistry()
+    registry.register_capability(CapabilityDefinition(capability_id="virtualization", display_name="V", domain="x"))
+    registry.register_connector(ConnectorDefinition(connector_id="proxmox", display_name="P", capabilities=("virtualization",)))
+    runtimes = ConnectorRuntimeRegistry()
+    runtimes.register(Runtime())
+
+    result = ConnectorExecutor(registry, runtimes).collect_and_publish("proxmox", "virtualization")
+
+    assert len(result) == 1
+    assert [event.event_type for event in Runtime.published] == ["guest_snapshot", "inventory_snapshot"]
