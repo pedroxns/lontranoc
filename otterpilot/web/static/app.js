@@ -700,14 +700,16 @@
     }
 
     return [
-      h("div", { class: "toolbar" }, selector, h("span", { class: "muted small" }, "Eventos com severidade de alerta ou maior, vindos do OpenObserve.")),
+      h("div", { class: "toolbar" }, selector, h("span", { class: "muted small" }, "Alertas e erros registrados no OpenObserve, agrupados por recurso e estado.")),
       data.errors && data.errors.length ? h("div", { class: "notice warn" }, `Algumas consultas falharam: ${data.errors.join(" · ")}`) : null,
-      card(`${data.events.length} evento(s)`, h("div", { class: "card-body flush" }, dataTable(data.events, [
-        { label: "Quando", render: (r) => timeCell(r.timestamp), sort: (r) => r.timestamp },
+      card(`${data.events.length} ocorrência(s) agrupada(s)`, h("div", { class: "card-body flush" }, dataTable(data.events, [
+        { label: "Última vez", render: (r) => timeCell(r.last_seen), sort: (r) => r.last_seen },
         { label: "Severidade", render: (r) => badge(r.severity, false, r.severity), sort: (r) => r.severity },
         { label: "Capability", value: (r) => capabilityLabel(r.capability) },
         { label: "Recurso", value: (r) => r.resource_id },
-        { label: "Evento", value: (r) => r.event_type },
+        { label: "Estado", render: (r) => badge(r.status), sort: (r) => r.status },
+        { label: "Ocorrências", value: (r) => num(r.occurrences, 0), num: true, sort: (r) => r.occurrences },
+        { label: "Desde", render: (r) => timeCell(r.first_seen), sort: (r) => r.first_seen },
         { label: "Mensagem", value: (r) => r.message },
       ], { empty: "Nenhum alerta no período. 🦦" }))),
     ];

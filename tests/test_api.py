@@ -201,3 +201,22 @@ def test_connection_test_reports_missing_configuration(client):
     assert mqtt[0]["not_configured"]
 
     assert client.post("/api/settings/nope/test").status_code == 404
+
+
+def test_activity_groups_fall_back_without_resource_id(monkeypatch):
+    from otterpilot.api import app as app_module
+
+    queries = []
+
+    def fake_search(sql, hours, size):
+        queries.append(sql)
+        if "resource_id" in sql:
+            raise RuntimeError("Schema error: No field named resource_id")
+        return [{"event_type": "error", "occurrences": 2, "last_seen": 1_700_000_000_000_000}]
+
+    monkeypatch.setattr(app_module.history, "search_logs", fake_search)
+
+    rows = app_module._activity_groups("otterpilot", 24)
+    assert rows[0]["occurrences"] == 2
+    assert len(queries) == 2 and "GROUP BY event_type, status, severity" in queries[1]
+    assert app_module._from_micros(1_700_000_000_000_000).startswith("2023-11-14")

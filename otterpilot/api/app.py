@@ -238,6 +238,36 @@ def run_connection_test(group_id: str) -> list[dict[str, Any]]:
     return results
 
 
+def _from_micros(value: Any) -> str | None:
+    if not isinstance(value, (int, float)):
+        return None
+
+    return datetime.fromtimestamp(value / 1_000_000, timezone.utc).isoformat()
+
+
+def _activity_groups(stream: str, hours: int) -> list[dict[str, Any]]:
+    """Alertas agrupados por recurso e estado (snapshots se repetem a cada coleta)."""
+
+    def query(keys: str) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT {keys}, COUNT(*) AS occurrences, MIN(_timestamp) AS first_seen, "
+            f"MAX(_timestamp) AS last_seen, MAX(message) AS message "
+            f'FROM "{stream}" '
+            "WHERE severity IN ('warning', 'error', 'critical') "
+            f"GROUP BY {keys} ORDER BY last_seen DESC"
+        )
+        return history.search_logs(sql, hours=hours, size=100)
+
+    try:
+        return query("resource_id, event_type, status, severity")
+    except RuntimeError as error:
+        # Streams sem resource_id (ex.: eventos do Copilot).
+        if "resource_id" not in str(error):
+            raise
+
+        return query("event_type, status, severity")
+
+
 def _load_proxmox_document() -> dict[str, Any]:
     path = config_path("proxmox.yaml", must_exist=False)
 
@@ -584,39 +614,37 @@ def create_app() -> FastAPI:
         streams = [c.capability_id for c in build_default_registry().list_capabilities()]
         streams.append("otterpilot")
 
-        events: list[dict[str, Any]] = []
+        groups: list[dict[str, Any]] = []
         errors: list[str] = []
 
         for stream in streams:
-            sql = (
-                f'SELECT * FROM "{stream}" '
-                "WHERE severity IN ('warning', 'error', 'critical') "
-                "ORDER BY _timestamp DESC"
-            )
-
             try:
-                events.extend(history.search_logs(sql, hours=hours, size=50))
+                rows = _activity_groups(stream, hours)
             except Exception as error:
                 if "not found" not in str(error).lower():
                     errors.append(f"{stream}: {error}")
+                continue
 
-        events.sort(key=lambda event: event.get("_timestamp", 0), reverse=True)
+            groups.extend({**row, "capability": stream} for row in rows)
+
+        groups.sort(key=lambda group: group.get("last_seen") or 0, reverse=True)
 
         result = {
             "available": True,
             "hours": hours,
             "events": [
                 {
-                    "timestamp": event.get("timestamp"),
-                    "capability": event.get("capability") or event.get("component"),
-                    "connector": event.get("connector") or event.get("service"),
-                    "resource_id": event.get("resource_id"),
-                    "event_type": event.get("event_type"),
-                    "severity": event.get("severity"),
-                    "status": event.get("status"),
-                    "message": event.get("message"),
+                    "capability": group["capability"],
+                    "resource_id": group.get("resource_id"),
+                    "event_type": group.get("event_type"),
+                    "status": group.get("status"),
+                    "severity": group.get("severity"),
+                    "message": group.get("message"),
+                    "occurrences": group.get("occurrences"),
+                    "first_seen": _from_micros(group.get("first_seen")),
+                    "last_seen": _from_micros(group.get("last_seen")),
                 }
-                for event in events[:200]
+                for group in groups[:300]
             ],
             "errors": errors[:5],
         }
