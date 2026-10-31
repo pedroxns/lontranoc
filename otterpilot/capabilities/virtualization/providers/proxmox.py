@@ -6,6 +6,7 @@ from otterpilot.core.config import config_path
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 from otterpilot.integrations.proxmox.client import ProxmoxClient
+from otterpilot.state import build_default_state_store
 
 def load_workload_policy() -> dict:
     config_file = config_path("proxmox.yaml")
@@ -199,6 +200,89 @@ def build_guest_event(
         expected_state=expected_state,
         importance=importance,
     )
+
+def build_transition_event(
+    previous: dict,
+    current: EventEnvelope,
+) -> EventEnvelope | None:
+    previous_payload = previous.get(
+        "payload",
+        {},
+    )
+
+    current_payload = current.payload
+
+    previous_proxmox_status = previous_payload.get(
+        "proxmox_status"
+    )
+
+    current_proxmox_status = current_payload.get(
+        "proxmox_status"
+    )
+
+    previous_status = previous.get(
+        "status"
+    )
+
+    current_status = current.status
+
+    runtime_changed = (
+        previous_proxmox_status
+        != current_proxmox_status
+    )
+
+    health_changed = (
+        previous_status
+        != current_status
+    )
+
+    if not runtime_changed and not health_changed:
+        return None
+
+    return EventEnvelope(
+        capability="virtualization",
+        connector="proxmox",
+        event_type="guest_transition",
+        resource_id=current.resource_id,
+        severity=current.severity,
+        status=current.status,
+        message=(
+            f"Proxmox guest transition: "
+            f"{current_payload.get('name') or current.resource_id}"
+        ),
+        payload={
+            "vmid": current_payload.get("vmid"),
+            "name": current_payload.get("name"),
+            "guest_type": current_payload.get("guest_type"),
+            "node": current_payload.get("node"),
+
+            "previous_proxmox_status": (
+                previous_proxmox_status
+            ),
+            "current_proxmox_status": (
+                current_proxmox_status
+            ),
+
+            "previous_status": previous_status,
+            "current_status": current_status,
+
+            "runtime_changed": runtime_changed,
+            "health_changed": health_changed,
+
+            "expected_state": current_payload.get(
+                "expected_state"
+            ),
+            "state_matches_expectation": (
+                current_payload.get(
+                    "state_matches_expectation"
+                )
+            ),
+            "importance": current_payload.get(
+                "importance"
+            ),
+        },
+    )
+
 def normalize_importance(
     value: str | None,
 ) -> str:
@@ -360,9 +444,32 @@ def publish(
     events: list[EventEnvelope],
 ) -> None:
     bus = build_default_event_bus()
+    store = build_default_state_store()
 
     for event in events:
+        previous = store.get(
+            connector=event.connector,
+            capability=event.capability,
+            resource_id=event.resource_id,
+        )
+
+        transition = None
+
+        if previous is not None:
+            transition = build_transition_event(
+                previous,
+                event,
+            )
+
+        # Primeiro publica o snapshot atual.
+        # O StateStoreSubscriber fará o UPSERT.
         bus.publish(event)
+
+        # Depois publica a transição histórica.
+        # guest_transition NÃO é stateful, portanto
+        # vai para OpenObserve sem substituir o snapshot.
+        if transition is not None:
+            bus.publish(transition)
 
 
 def main() -> None:
