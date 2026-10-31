@@ -1,0 +1,25 @@
+[Unit]
+Description=OtterPilot Frigate MQTT Subscriber
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=otterpilot
+Group=otterpilot
+WorkingDirectory=/var/lib/otterpilot
+Environment=OTTERPILOT_ROOT=/etc/otterpilot
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/otterpilot/venv/bin/python -m otterpilot.integrations.frigate.mqtt_provider
+StateDirectory=otterpilot
+StateDirectoryMode=0750
+Restart=always
+RestartSec=10
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
