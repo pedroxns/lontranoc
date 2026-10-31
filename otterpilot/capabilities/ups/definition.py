@@ -6,8 +6,7 @@ UPS_CAPABILITY = CapabilityDefinition(
     display_name="UPS",
     domain="infrastructure",
     description=(
-        "Uninterruptible power supply status, battery level, "
-        "power state and runtime health."
+        "Status do nobreak, nível de bateria e alimentação."
     ),
     cross_domains=("energy",),
 )

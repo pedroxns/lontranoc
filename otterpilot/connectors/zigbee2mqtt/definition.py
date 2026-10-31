@@ -9,8 +9,7 @@ ZIGBEE2MQTT_CONNECTOR = ConnectorDefinition(
     connector_id="zigbee2mqtt",
     display_name="Zigbee2MQTT",
     description=(
-        "Connects Zigbee2MQTT bridge, coordinator and "
-        "network health to OtterPilot."
+        "Bridge, coordenador e rede das instâncias Zigbee2MQTT."
     ),
     capabilities=(
         "zigbee_health",

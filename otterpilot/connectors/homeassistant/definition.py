@@ -9,7 +9,7 @@ HOMEASSISTANT_CONNECTOR = ConnectorDefinition(
     connector_id="homeassistant",
     display_name="Home Assistant",
     description=(
-        "Connects Home Assistant entities and services to OtterPilot."
+        "Entidades do Home Assistant: UPS, temperatura do rack e veículo."
     ),
     capabilities=(
     "vehicle",

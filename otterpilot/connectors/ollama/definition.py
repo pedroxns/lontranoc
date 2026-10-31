@@ -9,7 +9,7 @@ OLLAMA_CONNECTOR = ConnectorDefinition(
     connector_id="ollama",
     display_name="Ollama",
     description=(
-        "Connects Ollama runtime, model and accelerator telemetry."
+        "Runtime do Ollama: modelo carregado e latência. Também atende o Copilot."
     ),
     capabilities=("llm_runtime",),
     status=ComponentStatus.ENABLED,

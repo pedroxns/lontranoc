@@ -9,7 +9,7 @@ FRIGATE_CONNECTOR = ConnectorDefinition(
     connector_id="frigate",
     display_name="Frigate",
     description=(
-        "Connects Frigate events, detections and camera health."
+        "Saúde das câmeras e detecções do Frigate NVR."
     ),
     capabilities=(
         "object_detection",

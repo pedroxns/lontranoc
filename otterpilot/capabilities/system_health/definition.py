@@ -6,7 +6,6 @@ SYSTEM_HEALTH_CAPABILITY = CapabilityDefinition(
     display_name="System Health",
     domain="infrastructure",
     description=(
-        "Consolidated operational health of resources "
-        "monitored by OtterPilot."
+        "Saúde operacional consolidada dos recursos monitorados."
     ),
 )

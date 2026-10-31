@@ -6,6 +6,6 @@ DNS_CAPABILITY = CapabilityDefinition(
     display_name="DNS",
     domain="infrastructure",
     description=(
-        "DNS resolution, filtering, service health and query activity."
+        "Resolução DNS, filtragem, saúde do serviço e volume de consultas."
     ),
 )

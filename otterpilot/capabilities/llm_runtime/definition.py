@@ -6,7 +6,6 @@ LLM_RUNTIME_CAPABILITY = CapabilityDefinition(
     display_name="LLM Runtime",
     domain="ai",
     description=(
-        "LLM runtime availability, loaded models, inference latency "
-        "and accelerator telemetry."
+        "Disponibilidade do runtime de LLM, modelos carregados e latência de inferência."
     ),
 )

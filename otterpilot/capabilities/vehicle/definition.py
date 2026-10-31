@@ -6,7 +6,7 @@ VEHICLE_CAPABILITY = CapabilityDefinition(
     display_name="Vehicle",
     domain="mobility",
     description=(
-        "Vehicle state, location, energy, tires, access and maintenance."
+        "Estado do veículo: localização, energia, pneus, acesso e manutenção."
     ),
     aliases=(
         "car",

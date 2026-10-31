@@ -6,7 +6,6 @@ ZIGBEE_HEALTH_CAPABILITY = CapabilityDefinition(
     display_name="Zigbee Health",
     domain="infrastructure",
     description=(
-        "Zigbee coordinator, bridge, MQTT connectivity, "
-        "device activity and network health."
+        "Coordenador Zigbee, bridge, conectividade MQTT e dispositivos."
     ),
 )

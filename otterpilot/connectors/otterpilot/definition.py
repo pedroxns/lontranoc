@@ -8,8 +8,7 @@ OTTERPILOT_CONNECTOR = ConnectorDefinition(
     connector_id="otterpilot",
     display_name="OtterPilot",
     description=(
-        "Internal OtterPilot services and consolidated "
-        "system health."
+        "Serviços internos e saúde consolidada do OtterPilot."
     ),
     capabilities=(
         "system_health",

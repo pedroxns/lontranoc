@@ -6,6 +6,6 @@ CAMERA_HEALTH_CAPABILITY = CapabilityDefinition(
     display_name="Camera Health",
     domain="security",
     description=(
-        "Camera availability, streams, capture failures and transport health."
+        "Disponibilidade das câmeras, streams e falhas de captura."
     ),
 )

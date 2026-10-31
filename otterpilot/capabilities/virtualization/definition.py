@@ -6,7 +6,6 @@ VIRTUALIZATION_CAPABILITY = CapabilityDefinition(
     display_name="Virtualization",
     domain="infrastructure",
     description=(
-        "Hypervisor clusters, nodes, virtual machines, containers "
-        "and virtualization workloads."
+        "Clusters, nós, máquinas virtuais e containers do hypervisor."
     ),
 )

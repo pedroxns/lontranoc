@@ -9,7 +9,7 @@ ADGUARD_CONNECTOR = ConnectorDefinition(
     connector_id="adguard",
     display_name="AdGuard Home",
     description=(
-        "Connects AdGuard Home DNS health and filtering data."
+        "Saúde e filtragem de DNS do AdGuard Home."
     ),
     capabilities=("dns",),
     status=ComponentStatus.ENABLED,

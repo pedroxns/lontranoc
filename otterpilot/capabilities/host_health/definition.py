@@ -6,7 +6,6 @@ HOST_HEALTH_CAPABILITY = CapabilityDefinition(
     display_name="Host Health",
     domain="infrastructure",
     description=(
-        "Host availability, CPU, memory, storage, uptime "
-        "and operating health."
+        "Disponibilidade dos hosts, CPU, memória, armazenamento e uptime."
     ),
 )

@@ -9,8 +9,7 @@ PROXMOX_CONNECTOR = ConnectorDefinition(
     connector_id="proxmox",
     display_name="Proxmox VE",
     description=(
-        "Connects Proxmox VE nodes and virtualization resources "
-        "to OtterPilot."
+        "Nós e workloads (VMs e containers) do Proxmox VE."
     ),
     capabilities=(
         "host_health",

@@ -6,7 +6,6 @@ ENVIRONMENT_HEALTH_CAPABILITY = CapabilityDefinition(
     display_name="Environment Health",
     domain="infrastructure",
     description=(
-        "Environmental conditions affecting infrastructure, "
-        "including temperature and related physical health signals."
+        "Condições ambientais que afetam a infraestrutura, como a temperatura do rack."
     ),
 )

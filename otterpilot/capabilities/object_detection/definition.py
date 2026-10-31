@@ -6,6 +6,6 @@ OBJECT_DETECTION_CAPABILITY = CapabilityDefinition(
     display_name="Object Detection",
     domain="security",
     description=(
-        "Detection events, labels, confidence and observed entities."
+        "Eventos de detecção, rótulos, confiança e entidades observadas."
     ),
 )

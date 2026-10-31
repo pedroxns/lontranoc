@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -44,6 +45,36 @@ def build_client(settings: MQTTSettings) -> mqtt.Client:
         client.username_pw_set(settings.username, settings.password)
 
     return client
+
+
+def check_connection(timeout_seconds: float = 5.0) -> str:
+    """Conecta ao broker e desconecta. Devolve uma descrição ou levanta erro."""
+
+    settings = load_settings()
+    client = build_client(settings)
+    result: dict[str, Any] = {}
+    done = threading.Event()
+
+    def on_connect(client, userdata, flags, reason_code, properties):
+        result["reason"] = reason_code
+        done.set()
+
+    client.on_connect = on_connect
+
+    try:
+        client.connect(settings.host, settings.port, 10)
+        client.loop_start()
+
+        if not done.wait(timeout_seconds):
+            raise TimeoutError("o broker não respondeu ao CONNECT")
+
+        if result["reason"].is_failure:
+            raise ConnectionError(f"conexão recusada: {result['reason']}")
+    finally:
+        client.loop_stop()
+        client.disconnect()
+
+    return f"Conectado a {settings.host}:{settings.port}"
 
 
 class _ComponentReporter:
