@@ -39,7 +39,8 @@ Integrações sem configuração ficam inativas, sem erros.
 | Configurações › Sistema | Serviços, versão e senha |
 
 Por baixo, a configuração fica em `/etc/otterpilot/.env` e
-`/etc/otterpilot/config/*.yaml` (exemplos em `deploy/`). Os tokens do Proxmox
+`/etc/otterpilot/config/*.yaml` (exemplos em `deploy/`). As personas ficam em
+`/etc/otterpilot/config/copilot/` e mudam sem reiniciar nada. Os tokens do Proxmox
 também podem vir de credenciais systemd em `/etc/otterpilot/credentials/`,
 que têm precedência.
 

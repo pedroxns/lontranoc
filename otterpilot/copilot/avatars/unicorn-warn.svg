@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<rect width="64" height="64" rx="16" fill="#8b5cf6"/>
+  <circle cx="14" cy="25" r="5.8" fill="#ff8fab"/>
+  <circle cx="11.6" cy="34" r="5.8" fill="#ffd166"/>
+  <circle cx="13" cy="43" r="5.8" fill="#6ee7b7"/>
+  <circle cx="17.6" cy="51" r="5.2" fill="#7dd3fc"/>
+  <path d="M18.5 24L20.5 8.5 29.5 18.5z" fill="#fbf5ff"/>
+  <path d="M45.5 24L43.5 8.5 34.5 18.5z" fill="#fbf5ff"/>
+  <path d="M21 20.5L21.8 13 26 18z" fill="#f9b8d0"/>
+  <path d="M43 20.5L42.2 13 38 18z" fill="#f9b8d0"/>
+  <ellipse cx="32" cy="37" rx="19.5" ry="18" fill="#fbf5ff"/>
+  <path d="M32 1.8L27.6 17.5h8.8z" fill="#ffd166"/>
+  <path d="M29.1 12.4l5.6-1.7M30.4 7.6l3.3-1" stroke="#f4a259" stroke-width="1.4" stroke-linecap="round"/>
+  <circle cx="27.4" cy="19.6" r="4.2" fill="#ff8fab"/>
+  <circle cx="32.6" cy="18.4" r="4" fill="#7dd3fc"/>
+  <circle cx="37.4" cy="20.4" r="3.6" fill="#ffd166"/>
+  <ellipse cx="32" cy="47" rx="11.5" ry="7.6" fill="#f9d5e5"/>
+  <ellipse cx="28" cy="44.2" rx="1.4" ry="1" fill="#c2557a"/>
+  <ellipse cx="36" cy="44.2" rx="1.4" ry="1" fill="#c2557a"/>
+
+  <circle cx="18.8" cy="41.5" r="3" fill="#ff8fab" opacity="0.55"/>
+  <circle cx="45.2" cy="41.5" r="3" fill="#ff8fab" opacity="0.55"/>
+  <circle cx="24" cy="32" r="5.4" fill="#fff" stroke="#3b2a5a" stroke-width="1.2"/>
+  <circle cx="24.6" cy="32.6" r="2.7" fill="#3b2a5a"/>
+  <circle cx="23.7" cy="31.5" r="0.9" fill="#fff"/>
+  <circle cx="40" cy="32.6" r="3.8" fill="#fff" stroke="#3b2a5a" stroke-width="1.2"/>
+  <circle cx="40.6" cy="33" r="1.9" fill="#3b2a5a"/>
+  <circle cx="39.9" cy="32.2" r="0.6" fill="#fff"/>
+
+  <path d="M35.6 26.4l7.6-1.6" stroke="#3b2a5a" stroke-width="2" stroke-linecap="round"/>
+  <path d="M26.4 50.2q1.4-1.8 2.8 0t2.8 0t2.8 0t2.8 0" stroke="#3b2a5a" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M49.6 9.2q0-3.4 3.6-3.4t3.6 3.2q0 2.2-2.4 3.2-1.2.6-1.2 2.2" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <circle cx="53.2" cy="18" r="1.3" fill="#fff"/>
+</svg>

@@ -21,13 +21,21 @@ from otterpilot.api.catalog import (
     find_group,
     update_group,
 )
-from otterpilot.copilot.service import answer_question
+from otterpilot.copilot import personas
+from otterpilot.copilot.service import (
+    DEFAULT_MODEL,
+    DEFAULT_TIMEOUT_SECONDS,
+    answer_question,
+    list_models,
+)
 from otterpilot.core.config import (
     CONFIG_DIR,
     NotConfiguredError,
     PROJECT_ROOT,
     config_path,
     connector_enabled,
+    get_env,
+    get_int,
     update_env_file,
     write_config_file,
 )
@@ -82,6 +90,33 @@ class IntervalUpdate(BaseModel):
 
 class CopilotQuery(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
+    persona: str | None = Field(default=None, max_length=40)
+
+
+class PersonaFields(BaseModel):
+    name: str
+    description: str = ""
+    avatar: str = "otter"
+    color: str = "#0f7c86"
+    temperature: float | None = None
+    greeting: str = ""
+    personality: str
+    # Imagem própria como data URL (PNG, JPEG, WebP ou SVG).
+    avatar_image: str | None = Field(default=None, max_length=400_000)
+
+
+class PersonaCreate(PersonaFields):
+    id: str
+
+
+class ChannelsUpdate(BaseModel):
+    channels: dict[str, str | None]
+
+
+class CopilotModelUpdate(BaseModel):
+    model: str | None = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,199}$")
+    num_ctx: int | None = Field(default=None, ge=512, le=1_048_576)
+    timeout_seconds: int | None = Field(default=None, ge=10, le=900)
 
 
 class ConfigFileUpdate(BaseModel):
@@ -290,6 +325,54 @@ def _validate_config_file(name: str, content: str) -> None:
     if name == "vehicle.yaml":
         if not isinstance(data, dict) or not isinstance(data.get("vehicle"), dict):
             raise HTTPException(status_code=422, detail="O arquivo precisa da seção 'vehicle'")
+
+
+def _avatar_urls(entry: personas.PersonaEntry) -> dict[str, str]:
+    persona = entry.persona
+
+    if persona.avatar == personas.CUSTOM_AVATAR:
+        path = personas.avatar_file(persona.id)
+        version = path.stat().st_mtime_ns if path else 0
+        url = f"/api/copilot/personas/{persona.id}/avatar?v={version}"
+        return {mood: url for mood in personas.MOODS}
+
+    return {
+        mood: f"/api/copilot/avatars/{persona.avatar}-{mood}.svg" for mood in personas.MOODS
+    }
+
+
+def _persona_view(entry: personas.PersonaEntry, channels: dict[str, str]) -> dict[str, Any]:
+    return {
+        **entry.persona.model_dump(),
+        "builtin": entry.builtin,
+        "customized": entry.customized,
+        "avatar_urls": _avatar_urls(entry),
+        "channels": [channel for channel, persona_id in channels.items() if persona_id == entry.id],
+    }
+
+
+def _copilot_config() -> dict[str, Any]:
+    channels = personas.channel_personas()
+
+    return {
+        "channels": channels,
+        "channel_labels": personas.CHANNELS,
+        "personas": [_persona_view(entry, channels) for entry in personas.list_personas()],
+        "avatars": [{"id": key, "name": name} for key, name in personas.BUILTIN_AVATARS.items()],
+        "max_avatar_kb": personas.MAX_AVATAR_BYTES // 1024,
+        "model": {
+            "ollama_configured": bool(get_env("OLLAMA_URL")),
+            "model": get_env("OLLAMA_MODEL"),
+            "default_model": DEFAULT_MODEL,
+            "num_ctx": get_int("OLLAMA_NUM_CTX", 0) or None,
+            "timeout_seconds": get_int("OLLAMA_TIMEOUT_SECONDS", 0) or None,
+            "default_timeout_seconds": DEFAULT_TIMEOUT_SECONDS,
+        },
+    }
+
+
+def _persona_data(body: PersonaFields) -> dict[str, Any]:
+    return body.model_dump(exclude={"avatar_image", "id"})
 
 
 # ---------------------------------------------------------------- app
@@ -598,7 +681,108 @@ def create_app() -> FastAPI:
 
     @app.post("/api/copilot/query", dependencies=[api])
     def copilot(body: CopilotQuery) -> dict[str, Any]:
-        return answer_question(body.question.strip(), source="web")
+        return answer_question(body.question.strip(), source="web", persona_id=body.persona)
+
+    @app.get("/api/copilot/config", dependencies=[api])
+    def copilot_config() -> dict[str, Any]:
+        return _copilot_config()
+
+    @app.get("/api/copilot/models", dependencies=[api])
+    def copilot_models() -> dict[str, Any]:
+        try:
+            return {"available": True, "models": list_models(), "error": None}
+        except NotConfiguredError as error:
+            return {"available": False, "models": [], "error": str(error)}
+        except Exception as error:
+            return {"available": False, "models": [], "error": f"Ollama inacessível: {error}"}
+
+    @app.put("/api/copilot/model", dependencies=[api])
+    def copilot_model_update(body: CopilotModelUpdate) -> dict[str, Any]:
+        update_env_file(
+            {
+                "OLLAMA_MODEL": body.model if body.model not in (None, DEFAULT_MODEL) else None,
+                "OLLAMA_NUM_CTX": str(body.num_ctx) if body.num_ctx else None,
+                "OLLAMA_TIMEOUT_SECONDS": (
+                    str(body.timeout_seconds)
+                    if body.timeout_seconds not in (None, DEFAULT_TIMEOUT_SECONDS)
+                    else None
+                ),
+            }
+        )
+        return _copilot_config()
+
+    @app.put("/api/copilot/channels", dependencies=[api])
+    def copilot_channels_update(body: ChannelsUpdate) -> dict[str, Any]:
+        try:
+            personas.set_channels(body.channels)
+        except personas.PersonaError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+        return _copilot_config()
+
+    @app.post("/api/copilot/personas", dependencies=[api])
+    def persona_create(body: PersonaCreate) -> dict[str, Any]:
+        try:
+            entry = personas.save_persona(
+                body.id, _persona_data(body), avatar_image=body.avatar_image, create=True
+            )
+        except personas.PersonaError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+        return _persona_view(entry, personas.channel_personas())
+
+    @app.put("/api/copilot/personas/{persona_id}", dependencies=[api])
+    def persona_update(persona_id: str, body: PersonaFields) -> dict[str, Any]:
+        try:
+            entry = personas.save_persona(
+                persona_id, _persona_data(body), avatar_image=body.avatar_image
+            )
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Persona não encontrada") from error
+        except personas.PersonaError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+        return _persona_view(entry, personas.channel_personas())
+
+    @app.delete("/api/copilot/personas/{persona_id}", dependencies=[api])
+    def persona_delete(persona_id: str) -> dict[str, Any]:
+        try:
+            result = personas.delete_persona(persona_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Nada para excluir ou restaurar") from error
+
+        return {"result": result, **_copilot_config()}
+
+    @app.get("/api/copilot/avatars/{filename}", dependencies=[api])
+    def builtin_avatar(filename: str) -> Response:
+        data = personas.builtin_avatar_svg(filename)
+
+        if data is None:
+            raise HTTPException(status_code=404, detail="Avatar não encontrado")
+
+        return Response(
+            data,
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "private, max-age=86400"},
+        )
+
+    @app.get("/api/copilot/personas/{persona_id}/avatar", dependencies=[api])
+    def persona_avatar(persona_id: str) -> FileResponse:
+        path = personas.avatar_file(persona_id) if personas.PERSONA_ID.match(persona_id) else None
+
+        if path is None:
+            raise HTTPException(status_code=404, detail="Avatar não encontrado")
+
+        return FileResponse(
+            str(path),
+            media_type=personas.MEDIA_TYPES[path.suffix.lstrip(".")],
+            headers={
+                # SVG enviado pelo usuário: nunca executar scripts nem carregar nada.
+                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+                "X-Content-Type-Options": "nosniff",
+                "Cache-Control": "private, max-age=86400",
+            },
+        )
 
     @app.get("/api/activity", dependencies=[api])
     def activity(hours: int = 24) -> dict[str, Any]:

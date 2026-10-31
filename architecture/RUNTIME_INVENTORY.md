@@ -42,6 +42,7 @@ requisição e não reinicia.
 | `/etc/otterpilot/.env` | `otterpilot` 0600 | conexões e secrets (editável pela interface) |
 | `/etc/otterpilot/config/proxmox.yaml` | `otterpilot` 0640 | política de workloads |
 | `/etc/otterpilot/config/vehicle.yaml` | `otterpilot` 0640 | entidades do veículo |
+| `/etc/otterpilot/config/copilot/` | `otterpilot` | personas editadas/próprias (`personas/`), avatares enviados (`avatars/`) e persona por canal (`settings.yaml`); fora do `watch_config`, lidos a cada pergunta |
 | `/etc/otterpilot/auth.json` | `otterpilot` 0600 | hash da senha e chave de sessão |
 | `/etc/otterpilot/credentials/` | `root` 0700 | tokens Proxmox (`LoadCredential`, precedência sobre o `.env`) |
 | `/var/lib/otterpilot/state.db` | `otterpilot` | State Store: `current_state`, `job_status`, `component_status` |
@@ -67,7 +68,7 @@ Backup da configuração anterior ao 0.5.0: `/root/otterpilot-etc-backup-2026-10
 | sub | `z2m1/bridge/{state,health,info,logging}`, idem `z2m2` | zigbee2mqtt |
 | sub | `frigate/events`, `frigate/+/{motion,person,dog}` | frigate |
 | sub | `homelab/lontranoc/request`, `otterpilot/request` | copilot |
-| pub | `homelab/lontranoc/response`, `otterpilot/response` | copilot |
+| pub | `homelab/lontranoc/response`, `otterpilot/response` | copilot (payload inclui `persona`, o nome de quem respondeu) |
 
 ## Operação
 

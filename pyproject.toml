@@ -78,6 +78,7 @@ include = ["otterpilot*"]
 
 [tool.setuptools.package-data]
 "otterpilot.routing" = ["routes.yaml"]
+"otterpilot.copilot" = ["personas/*.yaml", "avatars/*.svg"]
 "otterpilot.web" = ["static/*", "static/**/*"]
 
 

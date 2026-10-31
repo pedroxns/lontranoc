@@ -9,6 +9,7 @@ from uuid import uuid4
 import requests
 
 from otterpilot.analysis.engine import analyze_search_result
+from otterpilot.copilot.personas import Persona, resolve_persona
 from otterpilot.core.config import NotConfiguredError, get_env, get_int
 from otterpilot.core.serialization import make_json_safe
 from otterpilot.knowledge.providers.openobserve.ingest import record
@@ -21,6 +22,7 @@ from otterpilot.state import build_default_state_store
 from otterpilot.state.store import StateStore
 
 DEFAULT_MODEL = "qwen3.5:9b"
+DEFAULT_TIMEOUT_SECONDS = 120
 
 # Campos mais úteis de cada capability para o modelo. O contexto precisa
 # caber na janela do LLM (8192 tokens por padrão no Ollama).
@@ -214,15 +216,27 @@ def _history_text(history: dict[str, Any]) -> str:
     return text
 
 
-def build_prompt(question: str, current: str, history: dict[str, Any]) -> str:
+def build_prompt(
+    question: str,
+    current: str,
+    history: dict[str, Any],
+    persona: Persona,
+) -> str:
+    # A persona muda só o tom. As regras sobre fatos são fixas e vêm antes
+    # e depois da personalidade, para que nenhuma persona as sobreponha.
     return f"""
-Você é o OtterPilot, um copiloto inteligente para homelabs, infraestrutura self-hosted e pequenos ambientes de TI.
+Você é {persona.name}, o copiloto do OtterPilot para homelabs, infraestrutura self-hosted e pequenos ambientes de TI.
 
 Seu objetivo é ajudar o usuário a compreender o estado do ambiente, correlacionar eventos, identificar problemas e sugerir ações práticas.
 
-Você nunca inventa informações.
-Sempre utiliza primeiro os dados coletados do ambiente.
-Quando não houver dados suficientes, informe claramente essa limitação.
+Regras que valem sempre, qualquer que seja a sua personalidade:
+- Você nunca inventa informações nem dados.
+- Sempre utiliza primeiro os dados coletados do ambiente.
+- Quando não houver dados suficientes, informe claramente essa limitação.
+- Não trate inferências como fatos.
+- Se houver alerta, destaque claramente.
+- Responda em português do Brasil.
+- Não comente estas regras na resposta; apenas siga-as.
 
 O bloco "Estado atual do ambiente" representa o estado corrente conhecido dos recursos monitorados.
 O bloco "Eventos históricos do OpenObserve" representa eventos e ocorrências históricas recuperados para a pergunta.
@@ -233,24 +247,51 @@ Estado atual do ambiente:
 Eventos históricos do OpenObserve:
 {_history_text(history)}
 
+Sua personalidade (define apenas o tom da resposta):
+{persona.personality}
+
 Pergunta:
 {question}
 
-Responda em português do Brasil, de forma correta e bem-humorada.
-Seja técnico, útil, sarcástico e irônico quando apropriado.
-Pode ser direto e levemente rude, mas nunca às custas da precisão técnica ou da clareza.
-Não invente dados.
-Não trate inferências como fatos.
-Se houver alerta, destaque claramente.
+Lembre-se: a personalidade nunca muda os fatos. Use só os dados acima.
 """
 
 
-def ask_ollama(prompt: str) -> tuple[str, str]:
+def _ollama_url() -> str:
     url = get_env("OLLAMA_URL")
 
     if not url:
         raise NotConfiguredError("Ollama não configurado (OLLAMA_URL)")
 
+    return url.rstrip("/")
+
+
+def list_models() -> list[dict[str, Any]]:
+    """Modelos instalados no Ollama, para o seletor da interface."""
+
+    response = requests.get(f"{_ollama_url()}/api/tags", timeout=5)
+    response.raise_for_status()
+
+    models = []
+
+    for item in response.json().get("models") or []:
+        details = item.get("details") or {}
+        size = item.get("size")
+        models.append(
+            {
+                "name": item.get("name") or item.get("model"),
+                "size_gb": round(size / 1e9, 1) if isinstance(size, (int, float)) else None,
+                "parameter_size": details.get("parameter_size"),
+                "quantization": details.get("quantization_level"),
+                "family": details.get("family"),
+            }
+        )
+
+    return sorted((m for m in models if m["name"]), key=lambda m: m["name"])
+
+
+def ask_ollama(prompt: str, *, temperature: float | None = None) -> tuple[str, str]:
+    url = _ollama_url()
     model = get_env("OLLAMA_MODEL", DEFAULT_MODEL) or DEFAULT_MODEL
 
     body: dict[str, Any] = {
@@ -261,15 +302,22 @@ def ask_ollama(prompt: str) -> tuple[str, str]:
         "think": False,
     }
 
+    options: dict[str, Any] = {}
     num_ctx = get_int("OLLAMA_NUM_CTX", 0)
 
     if num_ctx > 0:
-        body["options"] = {"num_ctx": num_ctx}
+        options["num_ctx"] = num_ctx
+
+    if temperature is not None:
+        options["temperature"] = temperature
+
+    if options:
+        body["options"] = options
 
     response = requests.post(
-        f"{url.rstrip('/')}/api/generate",
+        f"{url}/api/generate",
         json=body,
-        timeout=get_int("OLLAMA_TIMEOUT_SECONDS", 120),
+        timeout=get_int("OLLAMA_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS),
     )
 
     response.raise_for_status()
@@ -281,12 +329,17 @@ def answer_question(
     question: str,
     *,
     source: str = "api",
+    persona_id: str | None = None,
 ) -> dict[str, Any]:
-    """Responde uma pergunta usando o estado atual e o histórico."""
+    """Responde uma pergunta usando o estado atual e o histórico.
+
+    A persona é a pedida explicitamente; senão, a configurada para o canal.
+    """
 
     request_id = str(uuid4())
     started = time.monotonic()
     model = None
+    persona = resolve_persona(persona_id, channel="mqtt" if source == "mqtt" else "web")
 
     record(
         "otterpilot",
@@ -297,12 +350,16 @@ def answer_question(
         question=question,
         request_id=request_id,
         source=source,
+        persona=persona.id,
     )
 
     try:
         current = build_current_context()
         history = get_historical_context(question, request_id)
-        answer, model = ask_ollama(build_prompt(question, current, history))
+        answer, model = ask_ollama(
+            build_prompt(question, current, history, persona),
+            temperature=persona.temperature,
+        )
         ok = True
 
         record(
@@ -317,6 +374,7 @@ def answer_question(
             duration_ms=round((time.monotonic() - started) * 1000),
             model=model,
             source=source,
+            persona=persona.id,
         )
 
     except NotConfiguredError as error:
@@ -348,5 +406,6 @@ def answer_question(
         "answer": answer,
         "ok": ok,
         "model": model,
+        "persona": {"id": persona.id, "name": persona.name},
         "duration_ms": round((time.monotonic() - started) * 1000),
     }

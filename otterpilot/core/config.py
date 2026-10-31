@@ -159,15 +159,18 @@ def _quote_env_value(value: str) -> str:
     return f'"{escaped}"'
 
 
-def _atomic_write(path: Path, text: str) -> None:
+def _atomic_write(path: Path, data: str | bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     mode = path.stat().st_mode & 0o777 if path.exists() else 0o600
+
+    if isinstance(data, str):
+        data = data.encode("utf-8")
 
     fd, temp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
 
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(text)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
 
         os.chmod(temp_name, mode)
         os.replace(temp_name, path)
@@ -215,8 +218,16 @@ def update_env_file(
 
 
 def write_config_file(filename: str, text: str) -> Path:
+    """Grava um arquivo de texto sob config/ (aceita subpastas, ex.: copilot/x.yaml)."""
+
     path = CONFIG_DIR / filename
     _atomic_write(path, text if text.endswith("\n") else text + "\n")
+    return path
+
+
+def write_config_bytes(filename: str, data: bytes) -> Path:
+    path = CONFIG_DIR / filename
+    _atomic_write(path, data)
     return path
 
 

@@ -45,6 +45,8 @@ def _answer_and_publish(client, question: str, response_topic: str) -> None:
         "timestamp": result["timestamp"],
         "question": result["question"],
         "answer": result["answer"],
+        # Campo novo e aditivo: automações antigas simplesmente o ignoram.
+        "persona": result["persona"]["name"],
     }
 
     client.publish(
