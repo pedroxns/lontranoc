@@ -1,18 +1,15 @@
 import json
-import os
 import time
 import subprocess
 from datetime import datetime, timezone
+from otterpilot.core.config import get_env
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
 import requests
-from dotenv import load_dotenv
 
-load_dotenv("/opt/lontranoc/.env")
-
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
+OLLAMA_URL = get_env("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = get_env("OLLAMA_MODEL", "qwen3.5:9b")
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
