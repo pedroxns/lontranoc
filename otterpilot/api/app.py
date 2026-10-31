@@ -611,7 +611,12 @@ def create_app() -> FastAPI:
         if not history.is_configured():
             return {"available": False, "reason": "OpenObserve não configurado", "events": []}
 
-        streams = [c.capability_id for c in build_default_registry().list_capabilities()]
+        # system_health é o agregado dos demais: só repetiria os mesmos alertas.
+        streams = [
+            c.capability_id
+            for c in build_default_registry().list_capabilities()
+            if c.capability_id != "system_health"
+        ]
         streams.append("otterpilot")
 
         groups: list[dict[str, Any]] = []

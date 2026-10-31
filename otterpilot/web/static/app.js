@@ -124,6 +124,11 @@
     return isNaN(date) ? iso : date.toLocaleString("pt-BR");
   }
 
+  function truncate(text, max) {
+    if (!text) return "—";
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  }
+
   function timeCell(iso) {
     return h("span", { title: absolute(iso), class: "nowrap" }, ago(iso));
   }
@@ -710,7 +715,7 @@
         { label: "Estado", render: (r) => badge(r.status), sort: (r) => r.status },
         { label: "Ocorrências", value: (r) => num(r.occurrences, 0), num: true, sort: (r) => r.occurrences },
         { label: "Desde", render: (r) => timeCell(r.first_seen), sort: (r) => r.first_seen },
-        { label: "Mensagem", value: (r) => r.message },
+        { label: "Mensagem", render: (r) => h("span", { title: r.message || "" }, truncate(r.message, 120)), sort: (r) => r.message },
       ], { empty: "Nenhum alerta no período. 🦦" }))),
     ];
   }
