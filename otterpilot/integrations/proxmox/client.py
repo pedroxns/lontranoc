@@ -6,7 +6,7 @@ import requests
 import urllib3
 import yaml
 
-from otterpilot.core.config import config_path
+from otterpilot.core.config import NotConfiguredError, config_path, get_bool, get_env
 from otterpilot.core.secrets import get_secret
 
 
@@ -14,32 +14,35 @@ class ProxmoxAPIError(RuntimeError):
     """Erro ao consultar a API do Proxmox VE."""
 
 
+def load_proxmox_file() -> dict[str, Any]:
+    """Seção `proxmox` do proxmox.yaml (opcional)."""
+
+    path = config_path("proxmox.yaml", must_exist=False)
+
+    if not path.is_file():
+        return {}
+
+    with path.open("r", encoding="utf-8") as f:
+        config = yaml.safe_load(f) or {}
+
+    return config.get("proxmox", {}) or {}
+
+
 class ProxmoxClient:
     def __init__(self) -> None:
-        config_file = config_path("proxmox.yaml")
-
-        with config_file.open(
-            "r",
-            encoding="utf-8",
-        ) as f:
-            config = yaml.safe_load(f) or {}
-
-        proxmox_config = config.get("proxmox", {})
+        file_config = load_proxmox_file()
 
         self.base_url = str(
-            proxmox_config.get("url", "")
+            get_env("PROXMOX_URL")
+            or file_config.get("url", "")
         ).rstrip("/")
 
         if not self.base_url:
-            raise ProxmoxAPIError(
-                "URL do Proxmox não configurada em config/proxmox.yaml"
-            )
+            raise NotConfiguredError("Proxmox não configurado (PROXMOX_URL)")
 
-        self.verify_ssl = bool(
-            proxmox_config.get(
-                "verify_ssl",
-                True,
-            )
+        self.verify_ssl = get_bool(
+            "PROXMOX_VERIFY_SSL",
+            bool(file_config.get("verify_ssl", True)),
         )
 
         self.token_id = get_secret(

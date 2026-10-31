@@ -1,11 +1,8 @@
 import re
 
-from otterpilot.core.config import config_path
-
 import yaml
 
-
-ROUTES_FILE = config_path("routes.yaml")
+from otterpilot.core.config import resource_text
 
 
 GENERAL_HISTORY_KEYWORDS = {
@@ -29,8 +26,7 @@ GENERAL_HISTORY_KEYWORDS = {
 
 
 def load_routes() -> dict:
-    with ROUTES_FILE.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+    data = yaml.safe_load(resource_text("otterpilot.routing", "routes.yaml")) or {}
 
     if not isinstance(data, dict):
         raise ValueError("routes.yaml precisa conter um dicionário no topo")

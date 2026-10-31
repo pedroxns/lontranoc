@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +12,22 @@ class ComponentStatus(StrEnum):
     DISABLED = "disabled"
     DEGRADED = "degraded"
     ERROR = "error"
+
+
+class SettingDefinition(BaseModel):
+    """Um campo configurável (variável de ambiente) exposto na interface."""
+
+    model_config = ConfigDict(frozen=True)
+
+    key: str = Field(pattern=r"^[A-Z][A-Z0-9_]*$")
+    label: str
+    kind: Literal["text", "url", "secret", "int", "bool", "list"] = "text"
+    required: bool = False
+    default: str | None = None
+    help: str = ""
+    group: str | None = None
+    # Credencial systemd que, quando presente, tem precedência sobre o campo.
+    credential: str | None = None
 
 
 class CapabilityDefinition(BaseModel):
@@ -46,3 +63,6 @@ class ConnectorDefinition(BaseModel):
     status: ComponentStatus = ComponentStatus.AVAILABLE
     read_only_default: bool = True
     supports_discovery: bool = False
+    settings: tuple[SettingDefinition, ...] = ()
+    # Coleta por eventos MQTT (sem polling), quando aplicável.
+    push_components: tuple[str, ...] = ()

@@ -2,6 +2,7 @@ from otterpilot.core.registry.models import (
     CapabilityDefinition,
     ComponentStatus,
     ConnectorDefinition,
+    SettingDefinition,
 )
 from otterpilot.core.registry.registry import (
     DuplicateRegistrationError,
@@ -28,6 +29,7 @@ __all__ = [
     "CapabilityDefinition",
     "ComponentStatus",
     "ConnectorDefinition",
+    "SettingDefinition",
     "DuplicateRegistrationError",
     "OtterPilotRegistry",
     "RegistryError",

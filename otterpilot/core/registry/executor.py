@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from otterpilot.core.eventbus import INVENTORY_EVENT_TYPE, EventEnvelope
 from otterpilot.core.registry.registry import OtterPilotRegistry
 from otterpilot.core.registry.runtime import ConnectorRuntimeRegistry
 
@@ -83,6 +84,16 @@ class ConnectorExecutor:
             capability_id,
         )
 
+        if _is_inventory(payload):
+            payload = [
+                *payload,
+                build_inventory_event(
+                    connector_id,
+                    capability_id,
+                    payload,
+                ),
+            ]
+
         self.publish(
             connector_id,
             capability_id,
@@ -90,3 +101,35 @@ class ConnectorExecutor:
         )
 
         return payload
+
+def _is_inventory(payload: Any) -> bool:
+    """Coletas que devolvem lista de envelopes trazem o inventário completo."""
+
+    return isinstance(payload, list) and all(
+        isinstance(item, EventEnvelope)
+        for item in payload
+    )
+
+
+def build_inventory_event(
+    connector_id: str,
+    capability_id: str,
+    events: list[EventEnvelope],
+) -> EventEnvelope:
+    resource_ids = sorted(
+        {
+            event.resource_id
+            for event in events
+            if event.resource_id
+            and event.connector == connector_id
+            and event.capability == capability_id
+        }
+    )
+
+    return EventEnvelope(
+        capability=capability_id,
+        connector=connector_id,
+        event_type=INVENTORY_EVENT_TYPE,
+        message=f"Inventário de {connector_id}/{capability_id}",
+        payload={"resource_ids": resource_ids},
+    )

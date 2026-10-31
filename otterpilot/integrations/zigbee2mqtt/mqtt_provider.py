@@ -3,33 +3,38 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import paho.mqtt.client as mqtt
-
 from otterpilot.core.config import get_env
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
+from otterpilot.integrations.mqtt.client import run_subscriber
 
 
-MQTT_HOST = get_env("MQTT_HOST", required=True)
-MQTT_PORT = int(
-    get_env("MQTT_PORT", "1883") or "1883"
-)
+def configured_instances() -> tuple[str, ...]:
+    """Base topics das instâncias (`ZIGBEE2MQTT_BASE_TOPICS`, separados por vírgula)."""
 
-INSTANCES = (
-    "z2m1",
-    "z2m2",
-)
+    raw = get_env("ZIGBEE2MQTT_BASE_TOPICS", "zigbee2mqtt") or "zigbee2mqtt"
 
-TOPICS = tuple(
-    (f"{instance}/bridge/{topic}", 0)
-    for instance in INSTANCES
-    for topic in (
-        "state",
-        "health",
-        "info",
-        "logging",
+    return tuple(
+        item.strip().strip("/")
+        for item in raw.split(",")
+        if item.strip().strip("/")
     )
-)
+
+
+INSTANCES = configured_instances()
+
+
+def topics() -> tuple[tuple[str, int], ...]:
+    return tuple(
+        (f"{instance}/bridge/{topic}", 0)
+        for instance in INSTANCES
+        for topic in (
+            "state",
+            "health",
+            "info",
+            "logging",
+        )
+    )
 
 
 _state: dict[str, dict[str, Any]] = {
@@ -38,17 +43,17 @@ _state: dict[str, dict[str, Any]] = {
 }
 
 
-def _instance_from_topic(
+def _split_topic(
     topic: str,
-) -> str:
-    return topic.split("/", 1)[0]
+) -> tuple[str, str]:
+    """Separa `<base>/bridge/<subtopic>`; base topics podem conter barras."""
 
+    base, separator, subtopic = topic.rpartition("/bridge/")
 
-def _subtopic_from_topic(
-    topic: str,
-) -> str:
-    parts = topic.split("/")
-    return parts[2] if len(parts) >= 3 else ""
+    if not separator:
+        return "", ""
+
+    return base, subtopic
 
 
 def _parse_json(
@@ -269,36 +274,11 @@ def _build_log_event(
     )
 
 
-def on_connect(
-    client,
-    userdata,
-    flags,
-    reason_code,
-    properties,
-):
-    for topic, qos in TOPICS:
-        client.subscribe(
-            topic,
-            qos=qos,
-        )
-
-    print(
-        "OtterPilot Zigbee2MQTT "
-        "subscriber conectado.",
-        flush=True,
-    )
-
-
 def on_message(
     client,
-    userdata,
     msg,
 ):
-    instance = _instance_from_topic(
-        msg.topic
-    )
-
-    subtopic = _subtopic_from_topic(
+    instance, subtopic = _split_topic(
         msg.topic
     )
 
@@ -363,20 +343,7 @@ def on_message(
 
 
 def main() -> None:
-    client = mqtt.Client(
-        mqtt.CallbackAPIVersion.VERSION2
-    )
-
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    client.connect(
-        MQTT_HOST,
-        MQTT_PORT,
-        60,
-    )
-
-    client.loop_forever()
+    run_subscriber("zigbee2mqtt", topics, on_message)
 
 
 if __name__ == "__main__":

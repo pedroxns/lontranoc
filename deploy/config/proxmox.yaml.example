@@ -1,0 +1,26 @@
+# /etc/otterpilot/config/proxmox.yaml — política de workloads do Proxmox (opcional)
+#
+# A conexão (PROXMOX_URL, PROXMOX_VERIFY_SSL e o token) é configurada na
+# interface web ou no .env. Este arquivo só declara o estado esperado de
+# cada guest; também pode ser editado em Configurações > Políticas.
+#
+# expected_state: running | stopped
+# importance:     critical | warning
+#   Um guest "critical" parado inesperadamente vira problema crítico.
+
+proxmox:
+  workloads:
+    "qemu/100":
+      name: "router"
+      expected_state: running
+      importance: critical
+
+    "lxc/200":
+      name: "dns"
+      expected_state: running
+      importance: critical
+
+    "lxc/300":
+      name: "lab"
+      expected_state: stopped
+      importance: warning

@@ -1,32 +1,14 @@
 from __future__ import annotations
-import yaml
-
-from otterpilot.core.config import config_path
 
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
-from otterpilot.integrations.proxmox.client import ProxmoxClient
+from otterpilot.integrations.proxmox.client import ProxmoxClient, load_proxmox_file
+
 
 def load_workload_policy() -> dict:
-    config_file = config_path("proxmox.yaml")
+    """Política de estado esperado por workload (`proxmox.workloads`)."""
 
-    with config_file.open(
-        "r",
-        encoding="utf-8",
-    ) as f:
-        config = yaml.safe_load(f) or {}
-
-    proxmox_config = config.get(
-        "proxmox",
-        {},
-    )
-
-    workloads = proxmox_config.get(
-        "workloads",
-        {},
-    )
-
-    return workloads
+    return load_proxmox_file().get("workloads", {}) or {}
 
 def percent(
     value: int | float | None,
@@ -127,78 +109,6 @@ def apply_expectation(
 
     return "unexpected_state", "warning"
 
-def build_guest_event(
-    guest: dict,
-    workloads: dict,
-) -> EventEnvelope:
-    guest_type = str(
-        guest.get("type") or "unknown"
-    ).lower()
-
-    vmid = guest.get("vmid")
-
-    resource_id = (
-        f"{guest_type}/{vmid}"
-        if vmid is not None
-        else None
-    )
-
-    cpu_percent = round(
-        float(guest.get("cpu") or 0) * 100,
-        2,
-    )
-
-    memory_percent = percent(
-        guest.get("mem"),
-        guest.get("maxmem"),
-    )
-
-    disk_percent = percent(
-        guest.get("disk"),
-        guest.get("maxdisk"),
-    )
-
-    proxmox_status = str(
-        guest.get("status") or "unknown"
-    ).lower()
-
-    workload_policy = (
-        workloads.get(resource_id, {})
-        if resource_id
-        else {}
-    )
-
-    expected_state = workload_policy.get(
-        "expected_state"
-    )
-
-    importance = normalize_importance(
-    workload_policy.get("importance")
-    )
-
-    state_matches_expectation = (
-        proxmox_status == expected_state
-        if expected_state is not None
-        else None
-    )
-
-    # 1. Classificação técnica do guest
-    health, severity = classify_guest(
-        guest_type=guest_type,
-        proxmox_status=proxmox_status,
-        cpu_percent=cpu_percent,
-        memory_percent=memory_percent,
-        disk_percent=disk_percent,
-    )
-
-    # 2. Aplica a política de estado esperado
-    health, severity = apply_expectation(
-        current_status=health,
-        current_severity=severity,
-        proxmox_status=proxmox_status,
-        expected_state=expected_state,
-        importance=importance,
-    )
 def normalize_importance(
     value: str | None,
 ) -> str:

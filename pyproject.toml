@@ -39,13 +39,19 @@ classifiers = [
 ]
 
 dependencies = [
+  "fastapi>=0.110",
   "httpx",
-  "paho-mqtt",
+  "paho-mqtt>=2",
   "pydantic>=2",
   "python-dotenv",
   "PyYAML",
-  "requests"
+  "requests",
+  "uvicorn>=0.29"
 ]
+
+
+[project.scripts]
+otterpilot = "otterpilot.cli.main:main"
 
 
 [project.optional-dependencies]
@@ -68,15 +74,11 @@ version = { attr = "otterpilot.version.__version__" }
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["otterpilot*"]
-exclude = [
-  "core*",
-  "analysis*",
-  "collectors*",
-  "config*",
-  "architecture*",
-  "tests*",
-  "venv*"
-]
+
+
+[tool.setuptools.package-data]
+"otterpilot.routing" = ["routes.yaml"]
+"otterpilot.web" = ["static/*", "static/**/*"]
 
 
 [tool.ruff]

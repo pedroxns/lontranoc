@@ -1,3 +1,4 @@
+from otterpilot.core.config import watch_config
 from otterpilot.core.scheduler.bootstrap import (
     build_default_scheduler,
 )
@@ -5,6 +6,7 @@ from otterpilot.core.scheduler.bootstrap import (
 
 def main() -> None:
     scheduler = build_default_scheduler()
+    watch_config()
 
     print(
         "OtterPilot Polling Scheduler iniciado.",

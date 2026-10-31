@@ -1,33 +1,11 @@
-import json
+from __future__ import annotations
 
-import paho.mqtt.client as mqtt
+import json
 
 from otterpilot.core.config import get_env
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
-
-MQTT_HOST = get_env("MQTT_HOST", required=True)
-MQTT_PORT = int(get_env("MQTT_PORT", "1883") or "1883")
-
-PROVIDER_ID = "frigate"
-PROVIDER_NAME = "Frigate"
-
-PROVIDES_CAPABILITIES = (
-    "object_detection",
-    "camera_health",
-)
-
-import json
-
-import paho.mqtt.client as mqtt
-
-from otterpilot.core.config import get_env
-from otterpilot.core.eventbus import EventEnvelope
-from otterpilot.core.eventbus.bootstrap import build_default_event_bus
-
-
-MQTT_HOST = get_env("MQTT_HOST", required=True)
-MQTT_PORT = int(get_env("MQTT_PORT", "1883") or "1883")
+from otterpilot.integrations.mqtt.client import run_subscriber
 
 PROVIDER_ID = "frigate"
 PROVIDER_NAME = "Frigate"
@@ -39,18 +17,20 @@ PROVIDES_CAPABILITIES = (
 
 EVENT_BUS = build_default_event_bus()
 
-TOPICS = [
-    ("frigate/events", 0),
-    ("frigate/+/motion", 0),
-    ("frigate/+/person", 0),
-    ("frigate/+/dog", 0),
-]
 
-def on_connect(client, userdata, flags, reason_code, properties):
-    for topic, qos in TOPICS:
-        client.subscribe(topic, qos=qos)
+def topic_prefix() -> str:
+    return (get_env("FRIGATE_MQTT_PREFIX", "frigate") or "frigate").strip("/")
 
-    print("OtterPilot Frigate MQTT Collector conectado e escutando...")
+
+def topics() -> list[tuple[str, int]]:
+    prefix = topic_prefix()
+
+    return [
+        (f"{prefix}/events", 0),
+        (f"{prefix}/+/motion", 0),
+        (f"{prefix}/+/person", 0),
+        (f"{prefix}/+/dog", 0),
+    ]
 
 
 def build_object_detection_event(
@@ -67,7 +47,7 @@ def build_object_detection_event(
 
     event_type = "mqtt_event"
 
-    if topic == "frigate/events":
+    if topic == f"{topic_prefix()}/events":
         event_type = "object_event"
     elif topic.endswith("/motion"):
         event_type = "motion"
@@ -118,13 +98,7 @@ def build_object_detection_event(
         payload=fields,
     )
 
-def on_message(client, userdata, msg):
-    print(
-        f"MQTT recebido: {msg.topic} "
-        f"-> {msg.payload[:200]!r}",
-        flush=True,
-    )
-
+def on_message(client, msg):
     payload_text = msg.payload.decode(
         errors="replace"
     )
@@ -145,12 +119,7 @@ def on_message(client, userdata, msg):
 
 
 def main():
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    client.connect(MQTT_HOST, MQTT_PORT, 60)
-    client.loop_forever()
+    run_subscriber("frigate-mqtt", topics, on_message)
 
 
 if __name__ == "__main__":

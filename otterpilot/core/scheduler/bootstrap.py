@@ -5,6 +5,7 @@ from otterpilot.core.registry.executor_bootstrap import (
 )
 from otterpilot.core.scheduler.models import PollingJob
 from otterpilot.core.scheduler.scheduler import PollingScheduler
+from otterpilot.state import build_default_state_store
 
 
 DEFAULT_JOBS = (
@@ -64,8 +65,10 @@ DEFAULT_JOBS = (
     ),
 )
 
+
 def build_default_scheduler() -> PollingScheduler:
     return PollingScheduler(
         executor=build_default_executor(),
         jobs=DEFAULT_JOBS,
+        status_recorder=build_default_state_store(),
     )

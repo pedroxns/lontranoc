@@ -1,41 +1,28 @@
 from datetime import datetime, timezone
 
-import requests
 import yaml
 
-from otterpilot.core.config import config_path, get_env
+from otterpilot.core.config import NotConfiguredError, config_path
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
-
-
-CONFIG_FILE = config_path("vehicle.yaml")
-
-HA_URL = (get_env("HA_URL", required=True) or "").rstrip("/")
-HA_TOKEN = (
-    get_env("HA_TOKEN_VEHICLE")
-    or get_env("HA_TOKEN", required=True)
-)
+from otterpilot.integrations.homeassistant.client import HomeAssistantClient
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
 def load_config():
-    with CONFIG_FILE.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)["vehicle"]
+    with config_path("vehicle.yaml").open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+
+    if not isinstance(data.get("vehicle"), dict):
+        raise NotConfiguredError("vehicle.yaml sem a seção 'vehicle'")
+
+    return data["vehicle"]
 
 
 def get_ha_states():
-    response = requests.get(
-        f"{HA_URL}/api/states",
-        headers={
-            "Authorization": f"Bearer {HA_TOKEN}",
-            "Content-Type": "application/json",
-        },
-        timeout=20,
-    )
-    response.raise_for_status()
-    return {item["entity_id"]: item for item in response.json()}
+    return HomeAssistantClient(token_env="HA_TOKEN_VEHICLE").get_states()
 
 
 def state_value(states, entity_id, cast=None):
@@ -254,12 +241,6 @@ def emit_snapshot(snapshot: dict) -> None:
 
 def collect() -> dict:
     """Coleta e normaliza o estado atual do veículo via Home Assistant."""
-
-    if not HA_URL or not HA_TOKEN:
-        raise RuntimeError(
-            "HA_URL e HA_TOKEN_VEHICLE/HA_TOKEN "
-            "precisam estar configurados"
-        )
 
     config = load_config()
     states = get_ha_states()

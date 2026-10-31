@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from otterpilot.core.config import get_env
+from otterpilot.core.config import NotConfiguredError, get_env
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
@@ -19,7 +19,7 @@ def build_url(host, port, https):
 def get_instances():
     instances = []
 
-    for n in [1, 2]:
+    for n in (1, 2, 3):
         name = get_env(f"ADGUARD{n}_NAME")
         host = get_env(f"ADGUARD{n}_HOST")
         port = get_env(f"ADGUARD{n}_PORT", "80")
@@ -275,8 +275,12 @@ def publish_event(bus, event):
 
 def collect() -> list[EventEnvelope]:
     events: list[EventEnvelope] = []
+    instances = get_instances()
 
-    for instance in get_instances():
+    if not instances:
+        raise NotConfiguredError("Nenhuma instância do AdGuard configurada")
+
+    for instance in instances:
         try:
             print(
                 f"Coletando {instance['name']} "

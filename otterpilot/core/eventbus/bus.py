@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from otterpilot.core.eventbus.models import EventEnvelope
 from otterpilot.core.eventbus.subscriber import EventSubscriber
 
@@ -10,6 +12,15 @@ class EventBusError(RuntimeError):
 
 class DuplicateSubscriberError(EventBusError):
     pass
+
+
+# Falhas repetidas de um subscriber são relatadas no máximo uma vez
+# por intervalo, para não inundar o journal quando um destino cai.
+FAILURE_REPORT_INTERVAL_SECONDS = 300
+
+# Compartilhado entre instâncias: providers criam um bus por publicação.
+_last_failure_report: dict[str, float] = {}
+_suppressed_failures: dict[str, int] = {}
 
 
 class EventBus:
@@ -38,8 +49,44 @@ class EventBus:
         self,
         event: EventEnvelope,
     ) -> None:
-        for subscriber in self._subscribers.values():
-            subscriber.handle(event)
+        """Entrega o evento a todos os subscribers.
+
+        A falha de um destino (ex.: OpenObserve fora do ar) não impede
+        a entrega aos demais (ex.: State Store).
+        """
+
+        for subscriber_id, subscriber in self._subscribers.items():
+            try:
+                subscriber.handle(event)
+            except Exception as error:
+                self._report_failure(subscriber_id, event, error)
+
+    def _report_failure(
+        self,
+        subscriber_id: str,
+        event: EventEnvelope,
+        error: Exception,
+    ) -> None:
+        now = time.monotonic()
+        last = _last_failure_report.get(subscriber_id)
+
+        if last is not None and now - last < FAILURE_REPORT_INTERVAL_SECONDS:
+            _suppressed_failures[subscriber_id] = (
+                _suppressed_failures.get(subscriber_id, 0) + 1
+            )
+            return
+
+        suppressed = _suppressed_failures.pop(subscriber_id, 0)
+        _last_failure_report[subscriber_id] = now
+
+        extra = f" (+{suppressed} falhas suprimidas)" if suppressed else ""
+
+        print(
+            f"[eventbus] Falha no subscriber {subscriber_id} ao entregar "
+            f"{event.connector}/{event.capability}/{event.event_type}: "
+            f"{error}{extra}",
+            flush=True,
+        )
 
     def list_subscribers(self) -> tuple[str, ...]:
         return tuple(sorted(self._subscribers))

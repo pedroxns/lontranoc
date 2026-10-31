@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from otterpilot.core.eventbus import EventEnvelope
+from otterpilot.core.eventbus import INVENTORY_EVENT_TYPE, EventEnvelope
 from otterpilot.core.serialization import make_json_safe
 from otterpilot.knowledge.providers.openobserve.ingest import emit
 
@@ -12,6 +12,9 @@ class OpenObserveEventSubscriber:
         self,
         event: EventEnvelope,
     ) -> None:
+        if event.event_type == INVENTORY_EVENT_TYPE:
+            return
+
         payload = make_json_safe(event.payload)
         metadata = make_json_safe(event.metadata)
 

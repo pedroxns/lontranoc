@@ -8,17 +8,24 @@ from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
 import requests
 
-OLLAMA_URL = get_env("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = get_env("OLLAMA_MODEL", "qwen3.5:9b")
+DEFAULT_MODEL = "qwen3.5:9b"
+
+
+def ollama_url() -> str:
+    return get_env("OLLAMA_URL", required=True).rstrip("/")
+
+
+def ollama_model() -> str:
+    return get_env("OLLAMA_MODEL", DEFAULT_MODEL) or DEFAULT_MODEL
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
-def get_loaded_model_info():
+def get_loaded_model_info(url: str, model: str):
     try:
         response = requests.get(
-            f"{OLLAMA_URL}/api/ps",
+            f"{url}/api/ps",
             timeout=10,
         )
         response.raise_for_status()
@@ -35,9 +42,9 @@ def get_loaded_model_info():
             }
 
         selected = None
-        for model in models:
-            if model.get("name") == OLLAMA_MODEL or model.get("model") == OLLAMA_MODEL:
-                selected = model
+        for entry in models:
+            if model in (entry.get("name"), entry.get("model")):
+                selected = entry
                 break
 
         if selected is None:
@@ -64,18 +71,20 @@ def get_loaded_model_info():
         }
 
 
-def measure_latency():
+def measure_latency(url: str, model: str):
     start = time.perf_counter()
 
     try:
         response = requests.post(
-            f"{OLLAMA_URL}/api/generate",
+            f"{url}/api/generate",
             json={
-                "model": OLLAMA_MODEL,
+                "model": model,
                 "prompt": "responda apenas ok",
                 "stream": False,
                 "keep_alive": -1,
                 "think": False,
+                # Limita a resposta: mede latência, não tamanho de geração.
+                "options": {"num_predict": 16},
             },
             timeout=60,
         )
@@ -106,24 +115,31 @@ def measure_latency():
 
 
 def build_summary(payload):
-    if not payload.get("gpu_available"):
-        return "Atenção: GPU indisponível para o Ollama."
+    if not payload.get("latency_ok"):
+        return "Atenção: Ollama não respondeu à consulta de teste."
 
     if not payload.get("loaded"):
         return "Atenção: modelo do Ollama não está carregado."
 
-    if payload.get("gpu_temp", 0) >= 80:
+    if (payload.get("gpu_temp") or 0) >= 80:
         return f"Atenção: GPU quente, {payload['gpu_temp']}°C."
 
-    if payload.get("latency_ms", 99999) > 7000:
+    if (payload.get("latency_ms") or 99999) > 7000:
         return f"Atenção: Ollama lento, latência de {payload['latency_ms']} ms."
 
-    return (
+    summary = (
         f"Ollama operacional. Modelo {payload.get('model')} carregado, "
-        f"latência {payload.get('latency_ms')} ms, "
-        f"GPU a {payload.get('gpu_temp')}°C e "
-        f"VRAM em {payload.get('gpu_mem_percent')}%."
+        f"latência {payload.get('latency_ms')} ms"
     )
+
+    # Métricas de GPU só existem quando o Ollama roda neste host.
+    if payload.get("gpu_available"):
+        return (
+            f"{summary}, GPU a {payload.get('gpu_temp')}°C e "
+            f"VRAM em {payload.get('gpu_mem_percent')}%."
+        )
+
+    return f"{summary}, VRAM em uso {payload.get('size_vram_gb')} GB."
 
 def health_from_latency(latency_ms, ok):
     if not ok:
@@ -177,14 +193,17 @@ def get_gpu_info():
         }
     
 def collect() -> dict:
-    model_info = get_loaded_model_info()
-    latency = measure_latency()
+    url = ollama_url()
+    model = ollama_model()
+
+    model_info = get_loaded_model_info(url, model)
+    latency = measure_latency(url, model)
     gpu_info = get_gpu_info()
 
     payload = {
         "timestamp": now_iso(),
-        "ollama_url": OLLAMA_URL,
-        "target_model": OLLAMA_MODEL,
+        "ollama_url": url,
+        "target_model": model,
         "loaded": model_info.get("loaded", False),
         "model": model_info.get("model"),
         "expires_at": model_info.get("expires_at"),

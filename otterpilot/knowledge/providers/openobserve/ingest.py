@@ -1,16 +1,47 @@
-import os
+from __future__ import annotations
+
 import socket
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import requests
-from otterpilot.core.config import get_env
 
-OO_URL = get_env("OPENOBSERVE_URL", required=True)
-OO_ORG = get_env("OPENOBSERVE_ORG", "default")
-OO_USER = get_env("OPENOBSERVE_INGEST_USER", required=True)
-OO_TOKEN = get_env("OPENOBSERVE_INGEST_TOKEN", required=True)
+from otterpilot.core.config import NotConfiguredError, get_env
 
 HOSTNAME = socket.gethostname()
+
+
+@dataclass(frozen=True, slots=True)
+class IngestSettings:
+    url: str
+    org: str
+    user: str
+    token: str
+
+
+def load_settings() -> IngestSettings:
+    url = get_env("OPENOBSERVE_URL")
+    user = get_env("OPENOBSERVE_INGEST_USER")
+    token = get_env("OPENOBSERVE_INGEST_TOKEN")
+
+    if not (url and user and token):
+        raise NotConfiguredError("OpenObserve (ingestão) não configurado")
+
+    return IngestSettings(
+        url=url.rstrip("/"),
+        org=get_env("OPENOBSERVE_ORG", "default") or "default",
+        user=user,
+        token=token,
+    )
+
+
+def is_configured() -> bool:
+    try:
+        load_settings()
+    except NotConfiguredError:
+        return False
+
+    return True
 
 
 def now_iso():
@@ -42,12 +73,12 @@ def build_event(
 
 
 def send_log(stream: str, event: dict):
-    url = f"{OO_URL}/api/{OO_ORG}/{stream}/_json"
+    settings = load_settings()
 
     response = requests.post(
-        url,
+        f"{settings.url}/api/{settings.org}/{stream}/_json",
         json=[event],
-        auth=(OO_USER, OO_TOKEN),
+        auth=(settings.user, settings.token),
         headers={"Content-Type": "application/json"},
         timeout=10,
     )
@@ -77,3 +108,25 @@ def emit(
     )
 
     return send_log(stream, event)
+
+
+def record(
+    stream: str,
+    **fields,
+) -> bool:
+    """Registra um evento histórico sem nunca propagar falhas.
+
+    Usado por componentes cuja função principal não pode parar quando o
+    histórico está indisponível ou não configurado (ex.: Copilot).
+    """
+
+    if not is_configured():
+        return False
+
+    try:
+        emit(stream=stream, **fields)
+    except Exception as error:
+        print(f"[openobserve] Falha ao registrar evento: {error}", flush=True)
+        return False
+
+    return True

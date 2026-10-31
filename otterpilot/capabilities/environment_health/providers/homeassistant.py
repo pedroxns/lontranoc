@@ -1,36 +1,11 @@
 from __future__ import annotations
 
-import requests
-
-from otterpilot.core.config import get_env
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
-
-
-HA_URL = (get_env("HA_URL", required=True) or "").rstrip("/")
-HA_TOKEN = get_env("HA_TOKEN", required=True)
-
-RACK_TEMP_ENTITY = get_env(
-    "RACK_TEMP_ENTITY",
-    "sensor.clima_servidor_temperature",
+from otterpilot.integrations.homeassistant.client import (
+    HomeAssistantClient,
+    required_entity,
 )
-
-
-def get_state(
-    entity_id: str,
-) -> dict:
-    response = requests.get(
-        f"{HA_URL}/api/states/{entity_id}",
-        headers={
-            "Authorization": f"Bearer {HA_TOKEN}",
-            "Content-Type": "application/json",
-        },
-        timeout=10,
-    )
-
-    response.raise_for_status()
-
-    return response.json()
 
 
 def classify_temperature(
@@ -46,7 +21,10 @@ def classify_temperature(
 
 
 def collect() -> EventEnvelope:
-    state = get_state(RACK_TEMP_ENTITY)
+    client = HomeAssistantClient()
+    entity_id = required_entity("RACK_TEMP_ENTITY")
+
+    state = client.get_state(entity_id) or {}
 
     raw_value = state.get("state")
 
@@ -65,11 +43,26 @@ def collect() -> EventEnvelope:
             message="Rack temperature unavailable",
             payload={
                 "temperature_c": None,
-                "entity_id": RACK_TEMP_ENTITY,
+                "entity_id": entity_id,
             },
         )
 
-    temperature_c = float(raw_value)
+    try:
+        temperature_c = float(str(raw_value).replace(",", "."))
+    except ValueError:
+        return EventEnvelope(
+            capability="environment_health",
+            connector="homeassistant",
+            event_type="environment_snapshot",
+            resource_id="rack",
+            severity="warning",
+            status="unknown",
+            message=f"Rack temperature inválida: {raw_value}",
+            payload={
+                "temperature_c": None,
+                "entity_id": entity_id,
+            },
+        )
 
     health, severity = classify_temperature(
         temperature_c
@@ -85,7 +78,7 @@ def collect() -> EventEnvelope:
         message="Rack environment health",
         payload={
             "temperature_c": temperature_c,
-            "entity_id": RACK_TEMP_ENTITY,
+            "entity_id": entity_id,
         },
     )
 

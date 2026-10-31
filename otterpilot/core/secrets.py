@@ -3,9 +3,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from otterpilot.core.config import NotConfiguredError
 
-class SecretError(RuntimeError):
-    """Erro relacionado ao carregamento de secrets."""
+
+class SecretError(NotConfiguredError):
+    """Secret obrigatório ausente."""
 
 
 def _systemd_credential_path(
@@ -67,3 +69,16 @@ def get_secret(
         )
 
     return None
+
+
+def has_credential(
+    name: str,
+) -> bool:
+    """Indica se o secret vem de uma credencial systemd não vazia."""
+
+    path = _systemd_credential_path(name)
+
+    if path is None or not path.is_file():
+        return False
+
+    return bool(path.read_text(encoding="utf-8").strip())

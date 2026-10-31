@@ -29,10 +29,7 @@ from otterpilot.capabilities.virtualization.definition import (
 from otterpilot.connectors.proxmox.definition import (
     PROXMOX_CONNECTOR,
 )
-from otterpilot.connectors.proxmox.runtime import (
-    ProxmoxConnectorRuntime,
-)
-from otterpilot.core.registry import OtterPilotRegistry, registry
+from otterpilot.core.registry import OtterPilotRegistry
 from otterpilot.capabilities.environment_health.definition import (
     ENVIRONMENT_HEALTH_CAPABILITY,
 )

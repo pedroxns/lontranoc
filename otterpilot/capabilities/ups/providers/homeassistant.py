@@ -2,45 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-import requests
-
-from otterpilot.core.config import get_env
 from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
-
-
-HA_URL = (get_env("HA_URL", required=True) or "").rstrip("/")
-HA_TOKEN = get_env("HA_TOKEN", required=True)
-
-UPS_STATUS_ENTITY = get_env(
-    "UPS_STATUS_ENTITY",
-    "sensor.dnb_status",
+from otterpilot.integrations.homeassistant.client import (
+    HomeAssistantClient,
+    required_entity,
 )
-
-UPS_BATTERY_ENTITY = get_env(
-    "UPS_BATTERY_ENTITY",
-    "sensor.dnb_carga_da_bateria",
-)
-
-
-def get_state(
-    entity_id: str,
-) -> dict[str, Any] | None:
-    response = requests.get(
-        f"{HA_URL}/api/states/{entity_id}",
-        headers={
-            "Authorization": f"Bearer {HA_TOKEN}",
-            "Content-Type": "application/json",
-        },
-        timeout=10,
-    )
-
-    if response.status_code == 404:
-        return None
-
-    response.raise_for_status()
-
-    return response.json()
 
 
 def to_float(
@@ -107,13 +74,13 @@ def classify_health(
 
 
 def collect() -> EventEnvelope:
-    status_state = get_state(
-        UPS_STATUS_ENTITY
-    )
+    client = HomeAssistantClient()
 
-    battery_state = get_state(
-        UPS_BATTERY_ENTITY
-    )
+    status_entity = required_entity("UPS_STATUS_ENTITY")
+    battery_entity = required_entity("UPS_BATTERY_ENTITY")
+
+    status_state = client.get_state(status_entity)
+    battery_state = client.get_state(battery_entity)
 
     ups_status = normalize_status(
         status_state.get("state")
@@ -143,8 +110,8 @@ def collect() -> EventEnvelope:
         payload={
             "ups_status": ups_status,
             "battery_percent": battery_percent,
-            "status_entity": UPS_STATUS_ENTITY,
-            "battery_entity": UPS_BATTERY_ENTITY,
+            "status_entity": status_entity,
+            "battery_entity": battery_entity,
         },
     )
 

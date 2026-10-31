@@ -39,8 +39,7 @@ def search_context(question: str):
     try:
         sql = apply_filters(ctx["sql"], ctx.get("filters", {}))
         rows = search_logs(
-        sql,
-            ctx["sql"],
+            sql,
             start_time=time_ctx["start_time"],
             end_time=time_ctx["end_time"],
             size=ctx["limit"],

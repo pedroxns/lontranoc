@@ -4,7 +4,7 @@ from otterpilot.core.eventbus.bus import (
     EventBusError,
     event_bus,
 )
-from otterpilot.core.eventbus.models import EventEnvelope
+from otterpilot.core.eventbus.models import INVENTORY_EVENT_TYPE, EventEnvelope
 from otterpilot.core.eventbus.subscriber import EventSubscriber
 
 __all__ = [
@@ -13,5 +13,6 @@ __all__ = [
     "EventBusError",
     "EventEnvelope",
     "EventSubscriber",
+    "INVENTORY_EVENT_TYPE",
     "event_bus",
 ]

@@ -7,6 +7,11 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 
+# Evento emitido após uma coleta que devolve o inventário completo de uma
+# capability. O State Store remove os recursos que não aparecem mais nele.
+INVENTORY_EVENT_TYPE = "inventory_snapshot"
+
+
 class EventEnvelope(BaseModel):
     event_id: str = Field(default_factory=lambda: str(uuid4()))
     timestamp: datetime = Field(

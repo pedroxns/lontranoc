@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from otterpilot.state import build_default_state_store
+from otterpilot.state.store import StateStore
 
 
 HEALTHY_STATUSES = {
@@ -45,7 +46,9 @@ STALE_AFTER_SECONDS = {
     "ups": 300,
     "dns": 300,
     "llm_runtime": 300,
-    "zigbee_health": 600,
+    "virtualization": 300,
+    # bridge/health do Zigbee2MQTT chega a cada ~10 min.
+    "zigbee_health": 900,
     "environment_health": 300,
     "camera_health": 300,
     "vehicle": 1800,
@@ -168,6 +171,21 @@ def _overall_from_problems(
     return "healthy", "info"
 
 
+SUMMARY_MAX_NAMES = 5
+
+
+def _names(problems: list[dict[str, Any]]) -> str:
+    names = [problem["resource_id"] for problem in problems[:SUMMARY_MAX_NAMES]]
+    extra = len(problems) - len(names)
+
+    text = ", ".join(names)
+
+    if extra > 0:
+        text += f" e mais {extra}"
+
+    return text
+
+
 def _build_summary(
     *,
     overall_status: str,
@@ -189,34 +207,33 @@ def _build_summary(
         if problem["impact"] == "critical"
     ]
 
+    stale = [
+        problem
+        for problem in problems
+        if problem["impact"] == "warning" and problem["stale"]
+    ]
+
     warnings = [
         problem
         for problem in problems
-        if problem["impact"] == "warning"
+        if problem["impact"] == "warning" and not problem["stale"]
     ]
 
     parts = []
 
     if critical:
-        resources = ", ".join(
-            problem["resource_id"]
-            for problem in critical
-        )
-
         parts.append(
-            f"{len(critical)} problema(s) crítico(s): "
-            f"{resources}"
+            f"{len(critical)} problema(s) crítico(s): {_names(critical)}"
         )
 
     if warnings:
-        resources = ", ".join(
-            problem["resource_id"]
-            for problem in warnings
+        parts.append(
+            f"{len(warnings)} alerta(s): {_names(warnings)}"
         )
 
+    if stale:
         parts.append(
-            f"{len(warnings)} alerta(s): "
-            f"{resources}"
+            f"{len(stale)} sem atualização recente: {_names(stale)}"
         )
 
     return (
@@ -226,8 +243,8 @@ def _build_summary(
     )
 
 
-def build_overview() -> dict[str, Any]:
-    store = build_default_state_store()
+def build_overview(store: StateStore | None = None) -> dict[str, Any]:
+    store = store or build_default_state_store()
 
     states = [
         state

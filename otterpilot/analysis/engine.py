@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from otterpilot.analysis.capabilities.vehicle import analyze_vehicle
 
 

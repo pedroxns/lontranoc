@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from otterpilot.core.eventbus import EventEnvelope
+from otterpilot.core.eventbus import INVENTORY_EVENT_TYPE, EventEnvelope
 from otterpilot.state.store import StateStore
 
 
@@ -15,6 +15,8 @@ STATEFUL_EVENT_TYPES = frozenset({
     "camera_health",
     "system_snapshot",
     "guest_snapshot",
+    # Falha de coleta de um recurso conhecido também é o estado atual dele.
+    "status_error",
 })
 
 
@@ -36,6 +38,14 @@ class StateStoreSubscriber:
         self,
         event: EventEnvelope,
     ) -> None:
+        if event.event_type == INVENTORY_EVENT_TYPE:
+            self.store.retain(
+                connector=event.connector,
+                capability=event.capability,
+                resource_ids=list(event.payload.get("resource_ids", [])),
+            )
+            return
+
         if event.event_type not in STATEFUL_EVENT_TYPES:
             return
 

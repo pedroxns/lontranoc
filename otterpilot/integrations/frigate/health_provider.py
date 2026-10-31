@@ -7,15 +7,11 @@ from otterpilot.core.eventbus import EventEnvelope
 from otterpilot.core.eventbus.bootstrap import build_default_event_bus
 
 
-FRIGATE_URL = (
-    get_env("FRIGATE_URL")
-    or "http://192.168.10.30:5000"
-).rstrip("/")
-
-
 def fetch_stats() -> dict:
+    url = get_env("FRIGATE_URL", required=True).rstrip("/")
+
     response = requests.get(
-        f"{FRIGATE_URL}/api/stats",
+        f"{url}/api/stats",
         timeout=10,
     )
     response.raise_for_status()
