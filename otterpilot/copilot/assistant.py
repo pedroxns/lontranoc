@@ -18,7 +18,7 @@ from otterpilot.core.serialization import make_json_safe
 from otterpilot.state import build_default_state_store
 
 OLLAMA_URL = get_env("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = get_env("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+OLLAMA_MODEL = get_env("OLLAMA_MODEL", "qwen3.5:9b")
 
 MQTT_HOST = get_env("MQTT_HOST")
 MQTT_PORT = int(get_env("MQTT_PORT", "1883"))
@@ -189,7 +189,8 @@ def ask_ollama(question, context, request_id):
             "model": OLLAMA_MODEL,
             "prompt": prompt,
             "stream": False,
-            "keep_alive": "24h",
+            "keep_alive": -1,
+            "think": False,
         },
         timeout=120,
     )

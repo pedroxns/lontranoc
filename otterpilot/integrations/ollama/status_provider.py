@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv("/opt/lontranoc/.env")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -77,7 +77,8 @@ def measure_latency():
                 "model": OLLAMA_MODEL,
                 "prompt": "responda apenas ok",
                 "stream": False,
-                "keep_alive": "24h",
+                "keep_alive": -1,
+                "think": False,
             },
             timeout=60,
         )
