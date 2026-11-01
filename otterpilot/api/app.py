@@ -913,6 +913,17 @@ def create_app() -> FastAPI:
 
     # ---- interface web
 
+    @app.middleware("http")
+    async def revalidate_interface(request: Request, call_next):
+        # Sem Cache-Control o navegador reaproveita o app.js antigo depois de uma
+        # atualização. no-cache mantém o cache, mas revalida pelo ETag (304).
+        response = await call_next(request)
+
+        if not request.url.path.startswith("/api/"):
+            response.headers.setdefault("Cache-Control", "no-cache")
+
+        return response
+
     @app.exception_handler(404)
     async def not_found(request: Request, exc: HTTPException):
         if request.url.path.startswith("/api/"):

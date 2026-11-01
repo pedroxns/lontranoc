@@ -190,6 +190,17 @@ def test_web_ui_served(client):
     assert client.get("/static/app.js").status_code == 200
 
 
+def test_web_ui_is_revalidated_after_upgrades(client):
+    # Sem isso o navegador seguia com o app.js antigo depois de atualizar.
+    for path in ("/", "/static/app.js", "/static/style.css", "/settings/personas"):
+        assert client.get(path).headers["cache-control"] == "no-cache", path
+
+    etag = client.get("/static/app.js").headers["etag"]
+    assert client.get("/static/app.js", headers={"If-None-Match": etag}).status_code == 304
+
+    assert "cache-control" not in client.get("/api/health").headers
+
+
 def test_connection_test_reports_missing_configuration(client):
     login(client)
 
