@@ -60,7 +60,10 @@ Resposta: `200`, `application/x-ndjson`, uma linha JSON por evento:
 
 - `text`: o texto **acumulado** até agora, já cortado pelas regras de voz (não
   repete o mesmo texto duas vezes seguidas). O cliente pode começar a falar a
-  1ª frase assim que ela estiver fechada.
+  1ª frase assim que ela estiver fechada. Atenção: o texto pode **encolher** no
+  fim. Se uma 2ª frase começou a aparecer e passaria do limite de caracteres, ela
+  é descartada, e o último `text` volta a ter só a 1ª frase. A resposta final
+  é sempre a do evento `done`; use o `text` apenas para adiantar trabalho.
 - `done`: sempre o último evento de uma resposta normal. `ok: false` quando o
   Copilot não está configurado ou o LLM falhou (o `answer` explica).
 - `error`: falha inesperada do servidor (último evento).
