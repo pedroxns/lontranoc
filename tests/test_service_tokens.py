@@ -100,3 +100,20 @@ def test_cli_token_lifecycle(monkeypatch, tmp_path, capsys):
     assert cli.main(["token", "revoke", "gateway"]) == 0
     assert cli.main(["token", "revoke", "gateway"]) == 1
     assert auth.verify_service_token(token, VOICE) is None
+
+
+def test_cli_hands_auth_file_back_to_service_user(monkeypatch, tmp_path, capsys):
+    # Rodando com sudo, a gravação atômica deixaria o auth.json do root e
+    # ilegível para a API: todo comando que o regrava precisa devolvê-lo.
+    auth_path = tmp_path / "auth.json"
+    monkeypatch.setattr(auth, "AUTH_FILE", auth_path)
+    chowned = []
+    monkeypatch.setattr(cli, "_chown_to_service_user", chowned.append)
+
+    assert cli.main(["token", "create", "gateway"]) == 0
+    assert cli.main(["token", "revoke", "gateway"]) == 0
+    assert chowned == [auth_path, auth_path]
+
+    assert cli.main(["token", "revoke", "gateway"]) == 1  # nada gravado
+    assert len(chowned) == 2
+    capsys.readouterr()
