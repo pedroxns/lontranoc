@@ -86,7 +86,7 @@ para o canal `voice`:
 
 ```json
 {"id": "lontra-unicornio", "name": "Lontraz Unicórnio", "personality": "Você é Lontraz, ...",
- "temperature": null, "greeting": "Oi. Sim, estou de fantasia...", "voice": "lontraz",
+ "temperature": null, "greeting": "Oi. Sim, estou de fantasia...", "voice": "lontra_unicornio",
  "device_avatar": "unicorn", "family_friendly": true}
 ```
 
