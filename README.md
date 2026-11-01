@@ -51,6 +51,8 @@ systemctl status 'otterpilot-*'       # serviços
 journalctl -u otterpilot-scheduler -f # logs da coleta
 otterpilot status                     # resumo do estado atual
 sudo otterpilot set-password          # redefine a senha da interface
+sudo otterpilot token create <nome>    # token de serviço (ex.: aparelho de mesa); mostrado uma vez
+sudo otterpilot token list|revoke      # lista ou revoga tokens
 ```
 
 | Serviço | Função |
@@ -76,4 +78,5 @@ OTTERPILOT_ROOT=/tmp/op OTTERPILOT_STATE_DB=/tmp/op/state.db .venv/bin/python -m
 ```
 
 Arquitetura: [`architecture/ARCHITECTURE.md`](architecture/ARCHITECTURE.md).
+Canal de voz (aparelho de mesa): [`architecture/VOICE_CHANNEL.md`](architecture/VOICE_CHANNEL.md).
 Runtime de produção: [`architecture/RUNTIME_INVENTORY.md`](architecture/RUNTIME_INVENTORY.md).

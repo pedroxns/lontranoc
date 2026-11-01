@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,7 @@ from otterpilot.api.catalog import (
     update_group,
 )
 from otterpilot.copilot import personas
+from otterpilot.copilot.stream import voice_events
 from otterpilot.copilot.service import (
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT_SECONDS,
@@ -93,6 +94,11 @@ class CopilotQuery(BaseModel):
     persona: str | None = Field(default=None, max_length=40)
 
 
+class VoiceQuery(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    persona: str | None = Field(default=None, max_length=40)
+
+
 class PersonaFields(BaseModel):
     name: str
     description: str = ""
@@ -139,6 +145,34 @@ class PoliciesUpdate(BaseModel):
 def require_session(request: Request) -> None:
     if not auth.validate_session(request.cookies.get(auth.SESSION_COOKIE)):
         raise HTTPException(status_code=401, detail="Sessão expirada ou inválida")
+
+
+def require_voice_access(request: Request) -> str:
+    """Sessão da interface ou token de serviço com o escopo `copilot:voice`.
+
+    Devolve quem chamou (para o log). Tokens inválidos contam como tentativa
+    falha, com o mesmo limite do login.
+    """
+
+    if auth.validate_session(request.cookies.get(auth.SESSION_COOKIE)):
+        return "sessão"
+
+    client = _client(request)
+
+    if not auth.login_allowed(client):
+        raise HTTPException(status_code=429, detail="Muitas tentativas. Aguarde alguns minutos.")
+
+    header = request.headers.get("authorization", "")
+    token = header[7:].strip() if header.lower().startswith("bearer ") else None
+    name = auth.verify_service_token(token, auth.SCOPE_COPILOT_VOICE)
+
+    if name is None:
+        auth.register_failure(client)
+        raise HTTPException(status_code=401, detail="Token ausente, inválido ou sem permissão")
+
+    auth.reset_failures(client)
+
+    return f"token:{name}"
 
 
 def _client(request: Request) -> str:
@@ -682,6 +716,17 @@ def create_app() -> FastAPI:
     @app.post("/api/copilot/query", dependencies=[api])
     def copilot(body: CopilotQuery) -> dict[str, Any]:
         return answer_question(body.question.strip(), source="web", persona_id=body.persona)
+
+    @app.post("/api/copilot/voice")
+    def copilot_voice(body: VoiceQuery, caller: str = Depends(require_voice_access)) -> StreamingResponse:
+        """Resposta falada (curta) em NDJSON: eventos `text` com o texto parcial,
+        `done` com o resultado final ou `error`. Pensado para o aparelho de mesa."""
+
+        return StreamingResponse(
+            voice_events(body.question.strip(), persona_id=body.persona),
+            media_type="application/x-ndjson",
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.get("/api/copilot/config", dependencies=[api])
     def copilot_config() -> dict[str, Any]:
