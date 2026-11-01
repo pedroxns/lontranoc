@@ -4,9 +4,11 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import time
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,14 @@ LOGIN_MAX_FAILURES = 10
 _failures: dict[str, deque[float]] = defaultdict(deque)
 
 _SCRYPT = {"n": 2**14, "r": 8, "p": 1}
+
+# Tokens de serviço: credenciais de máquinas (o aparelho de mesa, por exemplo).
+# O token só aparece uma vez, na criação; em disco fica o hash. Cada token tem
+# escopos e pode ser revogado sem afetar a senha nem os outros tokens.
+SERVICE_TOKEN_PREFIX = "otp_"
+SCOPE_COPILOT_VOICE = "copilot:voice"
+KNOWN_SCOPES = (SCOPE_COPILOT_VOICE,)
+TOKEN_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 
 
 def _b64(data: bytes) -> str:
@@ -138,3 +148,77 @@ def register_failure(client: str) -> None:
 
 def reset_failures(client: str) -> None:
     _failures.pop(client, None)
+
+
+# ----------------------------------------------------------- tokens de serviço
+
+
+def _token_digest(token: str) -> str:
+    # O token tem 256 bits aleatórios: um hash rápido basta (scrypt é para senhas).
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_service_token(name: str, scopes: list[str], path: Path | None = None) -> str:
+    """Cria um token de serviço e o devolve (única vez em que ele existe em claro)."""
+
+    if not TOKEN_NAME.match(name):
+        raise ValueError("Nome inválido: use letras minúsculas, números, '-' ou '_' (até 40 caracteres)")
+
+    if not scopes or any(scope not in KNOWN_SCOPES for scope in scopes):
+        raise ValueError(f"Escopo inválido. Conhecidos: {', '.join(KNOWN_SCOPES)}")
+
+    data = load_auth(path)
+    tokens = data.setdefault("service_tokens", {})
+
+    if name in tokens:
+        raise ValueError(f"Já existe um token chamado {name}")
+
+    token = SERVICE_TOKEN_PREFIX + secrets.token_urlsafe(32)
+    tokens[name] = {
+        "hash": _token_digest(token),
+        "scopes": sorted(set(scopes)),
+        "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    save_auth(data, path)
+
+    return token
+
+
+def revoke_service_token(name: str, path: Path | None = None) -> bool:
+    data = load_auth(path)
+
+    if name not in (data.get("service_tokens") or {}):
+        return False
+
+    del data["service_tokens"][name]
+    save_auth(data, path)
+
+    return True
+
+
+def list_service_tokens(path: Path | None = None) -> list[dict[str, Any]]:
+    """Nome, escopos e data de cada token (nunca o hash nem o token)."""
+
+    tokens = load_auth(path).get("service_tokens") or {}
+
+    return [
+        {"name": name, "scopes": entry.get("scopes", []), "created": entry.get("created")}
+        for name, entry in sorted(tokens.items())
+    ]
+
+
+def verify_service_token(token: str | None, scope: str, path: Path | None = None) -> str | None:
+    """Nome do token se ele existe e tem o escopo pedido; senão None."""
+
+    if not token or not token.startswith(SERVICE_TOKEN_PREFIX):
+        return None
+
+    digest = _token_digest(token)
+    found: str | None = None
+
+    # Percorre todos, sem parar no primeiro: o tempo não revela qual existe.
+    for name, entry in (load_auth(path).get("service_tokens") or {}).items():
+        if hmac.compare_digest(digest, str(entry.get("hash", ""))) and scope in entry.get("scopes", []):
+            found = name
+
+    return found
