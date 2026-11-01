@@ -84,6 +84,12 @@ def cmd_token_revoke(args: argparse.Namespace) -> int:
     from otterpilot.api import auth
 
     removed = auth.revoke_service_token(args.name)
+
+    if removed:
+        # A gravação substitui o arquivo: rodando como root, ele ficaria do root e
+        # a API (usuário otterpilot) perderia a leitura do auth.json.
+        _chown_to_service_user(auth.AUTH_FILE)
+
     print("Revogado." if removed else "Token não encontrado.")
     return 0 if removed else 1
 
