@@ -78,6 +78,29 @@ curl -N -X POST http://HOST:8470/api/copilot/voice \
   -d '{"question": "como está o ambiente?"}'
 ```
 
+## `GET /api/copilot/voice/persona`
+
+Para o aparelho de mesa saber **quem ele é agora**. Mesma autenticação do endpoint
+de voz (token com o escopo `copilot:voice` ou sessão). Devolve a persona escolhida
+para o canal `voice`:
+
+```json
+{"id": "lontra-unicornio", "name": "Lontraz Unicórnio", "personality": "Você é Lontraz, ...",
+ "temperature": null, "greeting": "Oi. Sim, estou de fantasia...", "voice": "lontraz",
+ "device_avatar": "unicorn", "family_friendly": true}
+```
+
+- `device_avatar`: qual avatar o aparelho mostra (`otter` ou `unicorn`). O aparelho
+  troca ao vivo, sem reiniciar nem regravar, entre os avatares que o firmware tem.
+- `voice`: nome da referência de voz que o servidor de TTS usa.
+- `personality`: só o tom; as regras de fatos continuam fixas no Copilot.
+- `family_friendly`: o aparelho deve aplicar o mesmo filtro de linguagem às respostas
+  que gerar localmente.
+
+**Trocar de avatar é trocar a persona do canal de voz**: na página, "Avatar:
+unicórnio" = `PUT /api/copilot/channels` com `{"channels": {"voice": "lontra-unicornio"}}`.
+O aparelho consulta a cada ~15 s, então a mudança aparece em até esse tempo.
+
 ## O que ainda não está aqui
 
 - O aparelho (`/api/device/*`: voz, fala, estado, eventos) ainda é servido pelo

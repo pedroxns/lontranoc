@@ -107,6 +107,9 @@ class PersonaFields(BaseModel):
     temperature: float | None = None
     greeting: str = ""
     personality: str
+    voice: str = "lontraz"
+    device_avatar: str = "otter"
+    family_friendly: bool = False
     # Imagem própria como data URL (PNG, JPEG, WebP ou SVG).
     avatar_image: str | None = Field(default=None, max_length=400_000)
 
@@ -393,6 +396,7 @@ def _copilot_config() -> dict[str, Any]:
         "channel_labels": personas.CHANNELS,
         "personas": [_persona_view(entry, channels) for entry in personas.list_personas()],
         "avatars": [{"id": key, "name": name} for key, name in personas.BUILTIN_AVATARS.items()],
+        "device_avatars": [{"id": key, "name": name} for key, name in personas.DEVICE_AVATARS.items()],
         "max_avatar_kb": personas.MAX_AVATAR_BYTES // 1024,
         "model": {
             "ollama_configured": bool(get_env("OLLAMA_URL")),
@@ -726,6 +730,17 @@ def create_app() -> FastAPI:
             voice_events(body.question.strip(), persona_id=body.persona),
             media_type="application/x-ndjson",
             headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/api/copilot/voice/persona")
+    def copilot_voice_persona(caller: str = Depends(require_voice_access)) -> dict[str, Any]:
+        """Persona ativa do canal de voz, para o aparelho de mesa: o que falar (personalidade e
+        voz), como aparecer (avatar) e se o filtro de linguagem família vale."""
+
+        persona = personas.resolve_persona(channel="voice")
+
+        return persona.model_dump(
+            include={"id", "name", "personality", "temperature", "greeting", "voice", "device_avatar", "family_friendly"}
         )
 
     @app.get("/api/copilot/config", dependencies=[api])

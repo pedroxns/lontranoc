@@ -12,6 +12,7 @@ import requests
 
 from otterpilot.analysis.engine import analyze_search_result
 from otterpilot.copilot import voice
+from otterpilot.copilot.language import soften
 from otterpilot.copilot.personas import Persona, resolve_persona
 from otterpilot.core.config import NotConfiguredError, get_env, get_int
 from otterpilot.core.serialization import make_json_safe
@@ -476,11 +477,15 @@ def answer_question(
         history = get_historical_context(question, request_id)
         prompt = build_prompt(question, current, history, persona, voice_mode=voice_mode)
 
+        def clean_up(text: str) -> str:
+            # Persona "família": palavrões viram palavras neutras antes de mostrar ou falar.
+            return soften(text) if persona.family_friendly else text
+
         if voice_mode:
 
             def relay(partial: str) -> None:
                 if on_text:
-                    on_text(voice.trim_voice(partial))
+                    on_text(voice.trim_voice(clean_up(partial)))
 
             answer, model = stream_ollama(
                 prompt,
@@ -489,9 +494,10 @@ def answer_question(
                 on_text=relay,
                 stop=lambda text: bool(cancel and cancel.is_set()) or voice.voice_enough(text),
             )
-            answer = voice.trim_voice(answer)
+            answer = voice.trim_voice(clean_up(answer))
         else:
             answer, model = ask_ollama(prompt, temperature=persona.temperature)
+            answer = clean_up(answer)
 
         ok = True
 

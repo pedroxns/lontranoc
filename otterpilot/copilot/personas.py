@@ -29,7 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from otterpilot.core.config import CONFIG_DIR, write_config_bytes, write_config_file
 
 DEFAULT_PERSONA_ID = "lontraz"
-BUILTIN_ORDER = ("lontraz", "unicornio")
+BUILTIN_ORDER = ("lontraz", "lontra-unicornio", "unicornio")
 
 CHANNELS = {
     "web": "Chat web",
@@ -42,6 +42,14 @@ BUILTIN_AVATARS = {
     "unicorn": "Unicórnio bobão",
 }
 CUSTOM_AVATAR = "custom"
+
+# Avatares que o aparelho de mesa tem no firmware: trocar entre eles não pede
+# regravar nem reiniciar. Um id novo só existe depois de um firmware que o traga.
+DEVICE_AVATARS = {
+    "otter": "Lontra",
+    "unicorn": "Lontra de fantasia de unicórnio",
+}
+VOICE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 MOODS = ("ok", "warn", "crit", "thinking")
 
 PERSONA_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
@@ -78,12 +86,25 @@ class Persona(BaseModel):
     temperature: float | None = Field(default=None, ge=0, le=1.5)
     greeting: str = Field(default="", max_length=200)
     personality: str = Field(min_length=1, max_length=4000)
+    # Voz de síntese (nome de uma referência instalada no servidor de TTS).
+    voice: str = Field(default="lontraz", pattern=VOICE_NAME.pattern)
+    # Avatar animado no aparelho de mesa (um dos DEVICE_AVATARS).
+    device_avatar: str = "otter"
+    # Persona "família": o filtro de linguagem troca palavrões por palavras neutras.
+    family_friendly: bool = False
 
     @field_validator("avatar")
     @classmethod
     def _known_avatar(cls, value: str) -> str:
         if value not in BUILTIN_AVATARS and value != CUSTOM_AVATAR:
             raise ValueError(f"avatar desconhecido: {value}")
+        return value
+
+    @field_validator("device_avatar")
+    @classmethod
+    def _known_device_avatar(cls, value: str) -> str:
+        if value not in DEVICE_AVATARS:
+            raise ValueError(f"avatar do aparelho desconhecido: {value}")
         return value
 
 
@@ -326,6 +347,9 @@ FIELD_LABELS = {
     "temperature": "Temperatura",
     "greeting": "Saudação",
     "personality": "Personalidade",
+    "voice": "Voz",
+    "device_avatar": "Avatar do aparelho",
+    "family_friendly": "Linguagem família",
 }
 
 

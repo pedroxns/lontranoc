@@ -11,8 +11,9 @@ destacar alertas) ficam fixas no prompt (`otterpilot/copilot/service.py`) e
 valem para todas as personas: a persona muda só o jeito de falar.
 
 - **Embutidas** (`builtin: true`): vêm com o pacote, em
-  `otterpilot/copilot/personas/*.yaml`. Hoje: `lontraz` (lontra ranzinza)
-  e `unicornio` (unicórnio bobão). Não podem ser excluídas; editar grava uma
+  `otterpilot/copilot/personas/*.yaml`. Hoje: `lontraz` (lontra ranzinza),
+  `lontra-unicornio` (a mesma lontra, de fantasia de unicórnio, sem palavrão) e
+  `unicornio` (unicórnio bobão). Não podem ser excluídas; editar grava uma
   versão à parte (`customized: true`) que pode ser desfeita.
 - **Próprias** (`builtin: false`): criadas pelo usuário. Podem ser excluídas.
 - **Canais**: cada canal tem uma persona padrão. `web` é o chat da interface;
@@ -54,6 +55,9 @@ fora do `watch_config`, que só observa `config/*.yaml`.
 | `temperature` | número ou `null` | 0 a 1,5; `null` usa o padrão do modelo |
 | `greeting` | string | até 200 (sugestão: conversa vazia) |
 | `personality` | string | obrigatório, até 4000; texto livre que vai para o prompt |
+| `voice` | string | voz de síntese (nome de uma referência instalada no servidor de TTS); `^[a-z][a-z0-9_]{0,39}$`; padrão `lontraz` |
+| `device_avatar` | string | avatar animado no aparelho de mesa; um id de `device_avatars` (`otter`, `unicorn`); padrão `otter` |
+| `family_friendly` | bool | `true` liga o filtro de linguagem (palavrões viram palavras neutras na resposta); padrão `false` |
 
 Espaços nas pontas são removidos antes de validar.
 
@@ -95,6 +99,10 @@ Tudo o que a tela precisa de uma vez.
     {"id": "otter", "name": "Lontra ranzinza"},
     {"id": "unicorn", "name": "Unicórnio bobão"}
   ],
+  "device_avatars": [
+    {"id": "otter", "name": "Lontra"},
+    {"id": "unicorn", "name": "Lontra de fantasia de unicórnio"}
+  ],
   "max_avatar_kb": 256,
   "model": {
     "ollama_configured": true,
@@ -107,7 +115,7 @@ Tudo o que a tela precisa de uma vez.
 }
 ```
 
-- `personas` vem ordenada: embutidas primeiro (`lontraz`, `unicornio`),
+- `personas` vem ordenada: embutidas primeiro (`lontraz`, `lontra-unicornio`, `unicornio`),
   depois as próprias por nome.
 - `persona.channels`: em quais canais ela é a padrão.
 - `avatar_urls`: use direto em `<img src>`. Para `avatar: "custom"` os quatro

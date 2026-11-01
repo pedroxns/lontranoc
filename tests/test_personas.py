@@ -52,9 +52,9 @@ def client(project_root):
 
 def test_builtins_are_listed_in_order():
     entries = personas.list_personas()
-    assert [entry.id for entry in entries[:2]] == ["lontraz", "unicornio"]
-    assert all(entry.builtin and not entry.customized for entry in entries[:2])
-    assert entries[1].persona.avatar == "unicorn"
+    assert [entry.id for entry in entries[:3]] == ["lontraz", "lontra-unicornio", "unicornio"]
+    assert all(entry.builtin and not entry.customized for entry in entries[:3])
+    assert entries[2].persona.avatar == "unicorn"  # o unicórnio bobão, com arte própria para a web
 
 
 def test_channels_default_and_resolution():
