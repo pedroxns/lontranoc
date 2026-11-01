@@ -35,6 +35,7 @@ Integrações sem configuração ficam inativas, sem erros.
 | Integrações | Conexões (MQTT, OpenObserve, Proxmox, Home Assistant…) |
 | Configurações › Coleta | Intervalo de cada coleta |
 | Configurações › Políticas | Estado esperado e importância de cada VM/container |
+| Configurações › Personas | Avatar do aparelho de mesa, persona de cada canal e personas próprias (voz, linguagem família) |
 | Configurações › Arquivos | `proxmox.yaml` e `vehicle.yaml` |
 | Configurações › Sistema | Serviços, versão e senha |
 

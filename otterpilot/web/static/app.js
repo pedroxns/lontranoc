@@ -485,6 +485,7 @@
     { title: "Configurações", items: [
       { hash: "#/settings/polling", label: "Coleta" },
       { hash: "#/settings/policies", label: "Políticas" },
+      { hash: "#/settings/personas", label: "Personas" },
       { hash: "#/settings/files", label: "Arquivos" },
       { hash: "#/settings/system", label: "Sistema" },
     ] },
@@ -1034,6 +1035,333 @@
       h("form", { class: "chat-input", onsubmit: (event) => { event.preventDefault(); ask(input.value); } }, input, send));
   }
 
+  // ---- personas
+
+  const MOODS = ["ok", "warn", "crit", "thinking"];
+  const MOOD_LABEL = { ok: "Tudo certo", warn: "Alerta", crit: "Crítico", thinking: "Pensando" };
+  const VOICE_PATTERN = "[a-z][a-z0-9_]{0,39}";
+
+  function avatar(persona, mood, size) {
+    const urls = (persona && persona.avatar_urls) || {};
+    return h("img", {
+      class: `avatar ${size || ""}`,
+      src: urls[mood] || urls.ok || "/api/copilot/avatars/otter-ok.svg",
+      alt: "",
+      draggable: "false",
+      // Cor validada no servidor (#rrggbb).
+      style: persona && persona.color ? `--persona: ${persona.color}` : null,
+    });
+  }
+
+  function formField(id, label, input, help, required) {
+    return h("div", { class: "field" },
+      h("label", { for: id }, label, required ? h("span", { class: "req", title: "Obrigatório" }, "*") : null),
+      input,
+      help ? (help instanceof Node ? help : h("div", { class: "help" }, help)) : null);
+  }
+
+  function slugify(text) {
+    return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "persona";
+  }
+
+  function uniqueId(base, taken) {
+    let id = base;
+    for (let n = 2; taken.has(id); n += 1) id = `${base}-${n}`;
+    return id;
+  }
+
+  function readAsDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function deviceAvatarName(config, id) {
+    const found = config.device_avatars.find((item) => item.id === id);
+    return found ? found.name : id;
+  }
+
+  function openPersonaEditor(config, persona, duplicate) {
+    const creating = !persona || Boolean(duplicate);
+    const source = persona || {
+      name: "", description: "", avatar: "otter", color: "#0f7c86", temperature: null, greeting: "", personality: "",
+      voice: "lontraz", device_avatar: "otter", family_friendly: false,
+    };
+    const taken = new Set(config.personas.map((item) => item.id));
+    let imageData = null;
+    let avatarChoice = source.avatar;
+
+    const name = h("input", { id: "p-name", type: "text", maxlength: 40, required: true, value: duplicate ? `${source.name} (cópia)`.slice(0, 40) : source.name });
+    const idHint = h("div", { class: "help" });
+    const description = h("input", { id: "p-desc", type: "text", maxlength: 200, value: source.description });
+    const greeting = h("input", { id: "p-greet", type: "text", maxlength: 200, value: source.greeting });
+    const color = h("input", { id: "p-color", type: "color", value: source.color });
+    const temperature = h("input", { id: "p-temp", type: "number", min: 0, max: 1.5, step: 0.1, value: source.temperature ?? "", placeholder: "Padrão do modelo" });
+    const personality = h("textarea", { id: "p-pers", rows: 8, maxlength: 4000, required: true }, source.personality);
+    const deviceAvatar = h("select", { id: "p-device" },
+      config.device_avatars.map((item) => h("option", { value: item.id, selected: item.id === source.device_avatar }, item.name)));
+    const voice = h("input", {
+      id: "p-voice", type: "text", required: true, maxlength: 40, pattern: VOICE_PATTERN, value: source.voice,
+      spellcheck: "false", autocomplete: "off", title: "Letras minúsculas, números e _ (começando por letra)",
+    });
+    const familyFriendly = h("input", { id: "p-family", type: "checkbox", checked: source.family_friendly });
+    const fileInput = h("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/svg+xml", hidden: true });
+    const choices = h("div", { class: "avatar-choices", role: "radiogroup", "aria-label": "Avatar na interface" });
+
+    const newId = () => uniqueId(slugify(name.value), taken);
+    const updateIdHint = () => { idHint.textContent = `ID: ${newId()}`; };
+
+    function customUrl() {
+      if (imageData) return imageData;
+      return persona && persona.avatar === "custom" && !duplicate ? persona.avatar_urls.ok : null;
+    }
+
+    function drawChoices() {
+      const options = config.avatars.map((item) => ({ id: item.id, label: item.name, url: `/api/copilot/avatars/${item.id}-ok.svg` }));
+      options.push({ id: "custom", label: "Imagem própria", url: customUrl() });
+      clear(choices).append(...options.map((option) => h("label", { class: `avatar-choice ${avatarChoice === option.id ? "selected" : ""}` },
+        h("input", {
+          type: "radio", name: "p-avatar", value: option.id, checked: avatarChoice === option.id,
+          onchange: () => {
+            if (option.id === "custom" && !customUrl()) { fileInput.click(); drawChoices(); return; }
+            avatarChoice = option.id;
+            drawChoices();
+          },
+        }),
+        option.url
+          ? h("img", { class: "avatar md", src: option.url, alt: "", style: option.id === "custom" ? `--persona: ${color.value}` : null })
+          : h("span", { class: "avatar md placeholder", "aria-hidden": "true" }, "+"),
+        h("span", { class: "small" }, option.label))));
+    }
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      fileInput.value = "";
+      if (!file) return;
+      if (file.size > config.max_avatar_kb * 1024) {
+        toast(`Imagem grande demais (máximo ${config.max_avatar_kb} KB).`, "error");
+        return;
+      }
+      try {
+        imageData = await readAsDataUrl(file);
+        avatarChoice = "custom";
+        drawChoices();
+      } catch (_) { toast("Não foi possível ler a imagem.", "error"); }
+    });
+
+    // Duplicar uma persona com imagem própria leva a imagem junto.
+    if (duplicate && persona.avatar === "custom") {
+      fetch(persona.avatar_urls.ok, { credentials: "same-origin" })
+        .then((response) => (response.ok ? response.blob() : Promise.reject()))
+        .then(readAsDataUrl)
+        .then((data) => { imageData = data; drawChoices(); })
+        .catch(() => { avatarChoice = "otter"; drawChoices(); });
+    }
+
+    if (creating) {
+      name.addEventListener("input", updateIdHint);
+      updateIdHint();
+    }
+
+    const save = h("button", { class: "btn primary", type: "submit" }, "Salvar");
+
+    async function submit(event) {
+      event.preventDefault();
+      const body = {
+        name: name.value.trim(),
+        description: description.value.trim(),
+        avatar: avatarChoice,
+        color: color.value,
+        temperature: temperature.value === "" ? null : Number(temperature.value),
+        greeting: greeting.value.trim(),
+        personality: personality.value.trim(),
+        voice: voice.value.trim(),
+        device_avatar: deviceAvatar.value,
+        family_friendly: familyFriendly.checked,
+      };
+      if (avatarChoice === "custom") {
+        if (!customUrl()) { toast("Envie uma imagem para o avatar próprio.", "error"); return; }
+        if (imageData) body.avatar_image = imageData;
+      }
+
+      save.disabled = true;
+      try {
+        if (creating) await api.post("/api/copilot/personas", { id: newId(), ...body });
+        else await api.put(`/api/copilot/personas/${encodeURIComponent(persona.id)}`, body);
+        const onDevice = persona && persona.channels.includes("voice");
+        toast(onDevice ? "Persona salva. No aparelho, a mudança aparece em até ~15 s." : "Persona salva. Vale já na próxima pergunta.");
+        closeOverlay();
+        render();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        save.disabled = false;
+      }
+    }
+
+    drawChoices();
+
+    overlay(h("form", { class: "modal", onsubmit: submit },
+      h("div", { class: "modal-head" },
+        h("h1", { class: "spacer" }, creating ? (duplicate ? `Duplicar ${persona.name}` : "Nova persona") : `Editar ${persona.name}`),
+        h("button", { class: "btn ghost", type: "button", onclick: closeOverlay, "aria-label": "Fechar" }, "✕")),
+      h("div", { class: "modal-body" },
+        persona && persona.builtin && !duplicate ? h("div", { class: "notice small" },
+          "Persona embutida: a versão editada fica salva à parte e pode ser desfeita com “Restaurar padrão”.") : null,
+        h("fieldset", null, h("legend", null, "Identidade"), h("div", { class: "fields" },
+          formField("p-name", "Nome", name, creating ? idHint : null, true),
+          formField("p-desc", "Descrição", description, "Uma linha, aparece na lista."),
+          formField("p-greet", "Saudação", greeting, "Primeira fala da persona."))),
+        h("fieldset", null, h("legend", null, "Comportamento"), h("div", { class: "stack" },
+          formField("p-pers", "Personalidade", personality,
+            "Define só o tom. As regras sobre fatos (usar só os dados coletados, não inventar números, destacar alertas) valem para todas as personas.", true),
+          h("div", { class: "fields" },
+            formField("p-temp", "Temperatura", temperature,
+              "De 0 a 1,5. Mais alta deixa a resposta mais criativa e menos previsível. Vazio usa o padrão do modelo."),
+            h("div", { class: "field" },
+              h("label", { class: "switch" }, familyFriendly, "Linguagem família"),
+              h("div", { class: "help" }, "Troca palavrões por palavras neutras nas respostas, em todos os canais."))))),
+        h("fieldset", null, h("legend", null, "Aparelho de mesa"), h("div", { class: "fields" },
+          formField("p-device", "Avatar do aparelho", deviceAvatar, "Animação mostrada no aparelho; as opções vêm do firmware."),
+          formField("p-voice", "Voz", voice, "Nome da voz instalada no servidor de TTS (ex.: lontraz, lontra_unicornio).", true))),
+        h("fieldset", null, h("legend", null, "Avatar na interface"), h("div", { class: "stack" },
+          choices,
+          h("div", { class: "row" },
+            h("button", { class: "btn small", type: "button", onclick: () => fileInput.click() }, "Enviar imagem…"),
+            fileInput,
+            h("span", { class: "small muted" }, `PNG, JPEG, WebP ou SVG até ${config.max_avatar_kb} KB. Imagem própria não muda de expressão.`)),
+          h("div", { class: "fields" }, formField("p-color", "Cor", color, "Contorno do avatar e destaque do cartão."))))),
+      h("div", { class: "modal-foot" },
+        h("button", { class: "btn", type: "button", onclick: closeOverlay }, "Cancelar"),
+        save)), true);
+
+    name.focus();
+  }
+
+  async function setChannel(channel, personaId, message) {
+    try {
+      await api.put("/api/copilot/channels", { channels: { [channel]: personaId } });
+      toast(message);
+    } catch (error) {
+      toast(error.message, "error");
+    }
+    render();
+  }
+
+  async function pagePersonas() {
+    const config = await api.get("/api/copilot/config");
+    const byId = Object.fromEntries(config.personas.map((persona) => [persona.id, persona]));
+
+    // -- aparelho de mesa: o avatar é o da persona do canal de voz
+    const deviceCard = (() => {
+      if (!config.channel_labels.voice) return null;
+      const currentId = config.channels.voice;
+      const current = byId[currentId];
+      // Uma opção por avatar do firmware: a primeira persona embutida que o usa.
+      const featured = config.device_avatars
+        .map((item) => ({ item, persona: config.personas.find((p) => p.builtin && p.device_avatar === item.id) }))
+        .filter((option) => option.persona);
+      const featuredIds = new Set(featured.map((option) => option.persona.id));
+      const others = config.personas.filter((persona) => !featuredIds.has(persona.id));
+
+      const select = h("select", {
+        id: "ch-voice",
+        onchange: (event) => setChannel("voice", event.target.value, "Avatar trocado. Aparece no aparelho em até ~15 s."),
+      },
+        h("optgroup", { label: "Avatar do aparelho" },
+          featured.map(({ item, persona }) => h("option", { value: persona.id, selected: persona.id === currentId }, item.name))),
+        others.length ? h("optgroup", { label: "Outras personas" },
+          others.map((persona) => h("option", { value: persona.id, selected: persona.id === currentId },
+            `${persona.name} · ${deviceAvatarName(config, persona.device_avatar)}`))) : null);
+
+      return card("Aparelho de mesa", h("div", { class: "card-body stack" },
+        h("div", { class: "fields" }, formField("ch-voice", "Avatar do aparelho", select)),
+        current ? h("div", { class: "chips" },
+          h("span", { class: "chip" }, `Persona: ${current.name}`),
+          h("span", { class: "chip" }, `Voz: ${current.voice}`),
+          current.family_friendly ? h("span", { class: "chip" }, "Linguagem família") : null) : null,
+        h("div", { class: "notice small" }, "A troca aparece no aparelho em até ~15 s.")));
+    })();
+
+    // -- quem responde nos outros canais
+    const channelHelp = {
+      web: "Quem responde no chat desta interface.",
+      mqtt: "Quem responde em otterpilot/request pelo Home Assistant.",
+    };
+    const channels = Object.entries(config.channel_labels).filter(([channel]) => channel !== "voice");
+    const channelsCard = card("Quem responde", h("div", { class: "card-body stack" },
+      h("div", { class: "fields" }, channels.map(([channel, label]) => formField(`ch-${channel}`, label,
+        h("select", {
+          id: `ch-${channel}`,
+          onchange: (event) => setChannel(channel, event.target.value, "Salvo. Vale já na próxima pergunta."),
+        }, config.personas.map((persona) => h("option", { value: persona.id, selected: config.channels[channel] === persona.id }, persona.name))),
+        channelHelp[channel]))),
+      h("div", { class: "small muted" }, "Trocar de persona não reinicia nenhum serviço.")));
+
+    // -- personas
+    function personaCard(persona) {
+      const actions = [];
+
+      if (!persona.builtin) {
+        actions.push(confirmButton("Excluir", "Clique de novo para excluir", async () => {
+          try {
+            await api.del(`/api/copilot/personas/${encodeURIComponent(persona.id)}`);
+            toast(`${persona.name} excluída.`);
+            render();
+          } catch (error) { toast(error.message, "error"); }
+        }));
+      } else if (persona.customized) {
+        actions.push(confirmButton("Restaurar padrão", "Clique de novo para restaurar", async () => {
+          try {
+            await api.del(`/api/copilot/personas/${encodeURIComponent(persona.id)}`);
+            toast(`${persona.name} voltou ao padrão.`);
+            render();
+          } catch (error) { toast(error.message, "error"); }
+        }, "secondary"));
+      }
+
+      actions.push(
+        h("span", { class: "spacer" }),
+        h("button", { class: "btn", onclick: () => openPersonaEditor(config, persona, true) }, "Duplicar"),
+        h("button", { class: "btn primary", onclick: () => openPersonaEditor(config, persona) }, "Editar"));
+
+      return h("section", { class: "card persona-card", style: `--persona: ${persona.color}` },
+        h("div", { class: "card-body persona-top" },
+          avatar(persona, "ok", "lg"),
+          h("div", { class: "stack persona-title" },
+            h("h2", null, persona.name),
+            h("div", { class: "muted small" }, persona.description || "Sem descrição."),
+            h("div", { class: "chips" },
+              persona.channels.map((channel) => h("span", { class: "badge ok" }, config.channel_labels[channel])),
+              h("span", { class: "chip" }, persona.builtin ? (persona.customized ? "Embutida · editada" : "Embutida") : "Própria")))),
+        persona.avatar !== "custom" ? h("div", { class: "mood-strip", "aria-label": "Expressões conforme a saúde do ambiente" },
+          MOODS.map((mood) => h("figure", null, avatar(persona, mood, "sm"), h("figcaption", null, MOOD_LABEL[mood])))) : null,
+        h("div", { class: "card-body persona-text" },
+          h("div", { class: "chips" },
+            h("span", { class: "chip" }, `Aparelho: ${deviceAvatarName(config, persona.device_avatar)}`),
+            h("span", { class: "chip" }, `Voz: ${persona.voice}`),
+            persona.family_friendly ? h("span", { class: "chip" }, "Linguagem família") : null,
+            persona.temperature != null ? h("span", { class: "chip" }, `Temperatura ${num(persona.temperature)}`) : null),
+          persona.greeting ? h("div", { class: "persona-greeting" }, `“${persona.greeting}”`) : null,
+          h("div", { class: "persona-personality small muted", title: persona.personality }, persona.personality)),
+        h("div", { class: "card-foot" }, actions));
+    }
+
+    return [
+      h("div", { class: "muted" },
+        "A persona define o nome, o tom, a voz e o avatar do Copilot. As regras sobre fatos são as mesmas para todas: usar só os dados coletados, não inventar números e destacar alertas."),
+      h("div", { class: "grid halves" }, deviceCard, channelsCard),
+      h("div", { class: "row" },
+        h("h3", { class: "spacer" }, `Personas (${config.personas.length})`),
+        h("button", { class: "btn primary", onclick: () => openPersonaEditor(config, null) }, "Nova persona")),
+      h("div", { class: "grid cards" }, config.personas.map(personaCard)),
+    ];
+  }
+
   // ---- configurações
 
   async function pagePolling() {
@@ -1224,6 +1552,7 @@
     { pattern: /^#\/copilot$/, title: "Copilot", page: pageCopilot },
     { pattern: /^#\/settings\/polling$/, title: "Coleta", page: pagePolling },
     { pattern: /^#\/settings\/policies$/, title: "Políticas", page: pagePolicies },
+    { pattern: /^#\/settings\/personas$/, title: "Personas", page: pagePersonas },
     { pattern: /^#\/settings\/files$/, title: "Arquivos de configuração", page: pageFiles },
     { pattern: /^#\/settings\/system$/, title: "Sistema", page: pageSystem },
   ];
