@@ -16,7 +16,10 @@ valem para todas as personas: a persona muda só o jeito de falar.
   versão à parte (`customized: true`) que pode ser desfeita.
 - **Próprias** (`builtin: false`): criadas pelo usuário. Podem ser excluídas.
 - **Canais**: cada canal tem uma persona padrão. `web` é o chat da interface;
-  `mqtt` é quem responde em `otterpilot/request` (Home Assistant). Se a
+  `mqtt` é quem responde em `otterpilot/request` (Home Assistant). `voice` é o
+  aparelho de mesa: as respostas são faladas, então saem **curtas** (no máximo 2
+  frases e ~190 caracteres, ver `otterpilot/copilot/voice.py`), com contexto
+  reduzido e a geração do LLM interrompida assim que já há o bastante. Se a
   persona de um canal deixar de existir, o canal volta para `lontraz`.
 - **Humores do avatar**: `ok`, `warn`, `crit`, `thinking`. A sugestão é
   usar o status geral de `GET /api/system` (`overall_status`):
@@ -65,8 +68,8 @@ Tudo o que a tela precisa de uma vez.
 
 ```json
 {
-  "channels": {"web": "lontraz", "mqtt": "lontraz"},
-  "channel_labels": {"web": "Chat web", "mqtt": "Home Assistant (MQTT)"},
+  "channels": {"web": "lontraz", "mqtt": "lontraz", "voice": "lontraz"},
+  "channel_labels": {"web": "Chat web", "mqtt": "Home Assistant (MQTT)", "voice": "Voz (aparelho de mesa)"},
   "personas": [
     {
       "id": "lontraz",
@@ -85,7 +88,7 @@ Tudo o que a tela precisa de uma vez.
         "crit": "/api/copilot/avatars/otter-crit.svg",
         "thinking": "/api/copilot/avatars/otter-thinking.svg"
       },
-      "channels": ["web", "mqtt"]
+      "channels": ["web", "mqtt", "voice"]
     }
   ],
   "avatars": [

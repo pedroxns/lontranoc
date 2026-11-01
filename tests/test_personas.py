@@ -58,10 +58,11 @@ def test_builtins_are_listed_in_order():
 
 
 def test_channels_default_and_resolution():
-    assert personas.channel_personas() == {"web": "lontraz", "mqtt": "lontraz"}
+    assert personas.channel_personas() == {"web": "lontraz", "mqtt": "lontraz", "voice": "lontraz"}
 
     personas.set_channels({"mqtt": "unicornio"})
     assert personas.channel_personas()["mqtt"] == "unicornio"
+    assert personas.channel_personas()["voice"] == "lontraz"  # trocar um canal nao mexe nos outros
     assert personas.resolve_persona(channel="mqtt").id == "unicornio"
     assert personas.resolve_persona(channel="web").id == "lontraz"
 
@@ -204,11 +205,11 @@ def test_ask_ollama_sends_persona_temperature(monkeypatch):
 
 def test_api_config(client):
     data = client.get("/api/copilot/config").json()
-    assert data["channels"] == {"web": "lontraz", "mqtt": "lontraz"}
+    assert data["channels"] == {"web": "lontraz", "mqtt": "lontraz", "voice": "lontraz"}
     lontraz = data["personas"][0]
     assert lontraz["id"] == "lontraz"
     assert lontraz["avatar_urls"]["crit"] == "/api/copilot/avatars/otter-crit.svg"
-    assert lontraz["channels"] == ["web", "mqtt"]
+    assert lontraz["channels"] == ["web", "mqtt", "voice"]
     assert data["model"]["model"] is None
 
 

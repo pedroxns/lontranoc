@@ -34,6 +34,7 @@ BUILTIN_ORDER = ("lontraz", "unicornio")
 CHANNELS = {
     "web": "Chat web",
     "mqtt": "Home Assistant (MQTT)",
+    "voice": "Voz (aparelho de mesa)",
 }
 
 BUILTIN_AVATARS = {
@@ -91,9 +92,10 @@ FALLBACK_PERSONA = Persona(
     id=DEFAULT_PERSONA_ID,
     name="Lontraz",
     personality=(
-        "Responda de forma correta e bem-humorada. Seja técnico, útil, sarcástico e "
-        "irônico quando apropriado. Pode ser direto e levemente rude, mas nunca às "
-        "custas da precisão técnica ou da clareza."
+        "Você é uma lontra rabugenta, mal-educada e sarcástica, de mau humor crônico. "
+        "Reclama, debocha e xinga de leve, mas faz o trabalho com competência. Sem "
+        "ofensas discriminatórias, ameaças ou palavrões pesados. Em falha crítica, "
+        "diga primeiro o fato, o impacto e o próximo passo."
     ),
 )
 
