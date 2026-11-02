@@ -1,20 +1,24 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Create three LontraZ 2.0 GitHub repositories without altering the originals.
+  Bootstrap the LontraZ v2 GitHub repositories while preserving the legacy sources.
 .DESCRIPTION
   Run in PowerShell on the workstation with Git, GitHub CLI (gh), and SSH access.
-  Default is read-only preflight. Add -Apply to create private repositories.
+  Default is read-only preflight. Executing writes requires -Apply,
+  -ArchitectureReviewed AND -HistoryReviewed (manual safety attestations).
+  This script is a repository bootstrap, NOT a LontraZ v2 implementation.
   Backend history is preserved: refactor/otterpilot becomes otterpilot/main.
   S3 and P4 receive documentation-only initial commits until their real firmware
   sources are located and imported. This script does not flash any hardware.
 .EXAMPLE
   .\tools\split_lontraz_repos.ps1
-  .\tools\split_lontraz_repos.ps1 -Apply
+  .\tools\split_lontraz_repos.ps1 -Apply -ArchitectureReviewed -HistoryReviewed
 #>
 [CmdletBinding()]
 param(
     [switch] $Apply,
+    [switch] $ArchitectureReviewed,
+    [switch] $HistoryReviewed,
     [string] $Owner = "pedroxns",
     [string] $BaseBranch = "refactor/otterpilot"
 )
@@ -48,12 +52,16 @@ foreach ($name in $desired) {
     }
 }
 Write-Host "Preflight OK. No existing destination repositories."
-Write-Host "Plan: create PRIVATE repositories $($desired -join ', ')."
+Write-Host "Plan: bootstrap PRIVATE repositories $($desired -join ', ')."
 Write-Host "Source: $Owner/lontranoc, branch $BaseBranch, preserved Git ancestry."
 Write-Host "S3/P4 repos will have README only, not replacement firmware."
 if (-not $Apply) {
-    Write-Host "Dry-run only. Re-run with -Apply to execute."
+    Write-Host "Dry-run only. To execute after reviewing V2 architecture AND Git history," 
+    Write-Host "pass -Apply -ArchitectureReviewed -HistoryReviewed."
     exit 0
+}
+if (-not $ArchitectureReviewed -or -not $HistoryReviewed) {
+    throw "BLOCKED: -Apply requires -ArchitectureReviewed and -HistoryReviewed after manual V2 design and full Git-history/secrets audit."
 }
 $work = Join-Path ([IO.Path]::GetTempPath()) ("lontraz-v2-split-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $work | Out-Null
@@ -78,7 +86,7 @@ if ($forbidden.Count -gt 0) {
     throw "Review tracked files and Git history manually before migration."
 }
 Write-Host "Backend SHA: $sourceSha"
-Write-Host "NOTE: automated filename checks cannot rule out secrets in file content or history."
+Write-Host "WARNING: filename checks DO NOT audit secrets in file content or Git history."
 
 Invoke-CommandChecked -Command "gh" -Arguments @("repo", "create", "$Owner/otterpilot", "--private",
     "--description", "OtterPilot: observability and local AI copilot for homelabs")
