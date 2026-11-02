@@ -37,7 +37,7 @@ function Assert-Command {
 }
 Assert-Command "git"
 Assert-Command "gh"
-Invoke-CommandChecked "gh" @("auth", "status")
+Invoke-CommandChecked -Command "gh" -Arguments @("auth", "status")
 $desired = @("otterpilot", "lontraz-display-s3", "lontraz-core-p4")
 $existingJson = (& gh repo list $Owner --limit 1000 --json name | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "Could not list existing repositories of $Owner" }
@@ -61,7 +61,7 @@ Write-Host "Temporary workdir: $work (retained for auditing)."
 
 # Backend: clone the actual advanced branch; do not use stale main.
 $backendPath = Join-Path $work "otterpilot"
-Invoke-CommandChecked "git" @("clone", "--single-branch", "--branch", $BaseBranch,
+Invoke-CommandChecked -Command "git" -Arguments @("clone", "--single-branch", "--branch", $BaseBranch,
     "https://github.com/$Owner/lontranoc.git", $backendPath)
 $sourceSha = (& git -C $backendPath rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw "Could not read backend source commit." }
@@ -80,11 +80,11 @@ if ($forbidden.Count -gt 0) {
 Write-Host "Backend SHA: $sourceSha"
 Write-Host "NOTE: automated filename checks cannot rule out secrets in file content or history."
 
-Invoke-CommandChecked "gh" @("repo", "create", "$Owner/otterpilot", "--private",
+Invoke-CommandChecked -Command "gh" -Arguments @("repo", "create", "$Owner/otterpilot", "--private",
     "--description", "OtterPilot: observability and local AI copilot for homelabs")
-Invoke-CommandChecked "git" @("-C", $backendPath, "remote", "add", "migration-target",
+Invoke-CommandChecked -Command "git" -Arguments @("-C", $backendPath, "remote", "add", "migration-target",
     "git@github.com:$Owner/otterpilot.git")
-Invoke-CommandChecked "git" @("-C", $backendPath, "push", "-u", "migration-target", "HEAD:refs/heads/main")
+Invoke-CommandChecked -Command "git" -Arguments @("-C", $backendPath, "push", "-u", "migration-target", "HEAD:refs/heads/main")
 Write-Host "Created $Owner/otterpilot main at $sourceSha"
 
 function New-DocumentationOnlyRepo {
@@ -96,13 +96,13 @@ function New-DocumentationOnlyRepo {
         New-Item -ItemType Directory -Path (Join-Path $path "protocol") | Out-Null
         Set-Content -Path (Join-Path $path "protocol\README.md") -Value $ProtocolReadme -Encoding UTF8
     }
-    Invoke-CommandChecked "git" @("-C", $path, "init", "-b", "main")
-    Invoke-CommandChecked "git" @("-C", $path, "add", ".")
-    Invoke-CommandChecked "git" @("-C", $path, "commit", "-m", "docs: establish device repository without replacing firmware")
-    Invoke-CommandChecked "gh" @("repo", "create", "$Owner/$Name", "--private", "--description", $Description)
-    Invoke-CommandChecked "git" @("-C", $path, "remote", "add", "origin",
+    Invoke-CommandChecked -Command "git" -Arguments @("-C", $path, "init", "-b", "main")
+    Invoke-CommandChecked -Command "git" -Arguments @("-C", $path, "add", ".")
+    Invoke-CommandChecked -Command "git" -Arguments @("-C", $path, "commit", "-m", "docs: establish device repository without replacing firmware")
+    Invoke-CommandChecked -Command "gh" -Arguments @("repo", "create", "$Owner/$Name", "--private", "--description", $Description)
+    Invoke-CommandChecked -Command "git" -Arguments @("-C", $path, "remote", "add", "origin",
         "git@github.com:$Owner/$Name.git")
-    Invoke-CommandChecked "git" @("-C", $path, "push", "-u", "origin", "main")
+    Invoke-CommandChecked -Command "git" -Arguments @("-C", $path, "push", "-u", "origin", "main")
     Write-Host "Created $Owner/$Name (documentation only)"
 }
 
