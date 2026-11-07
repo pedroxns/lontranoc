@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<rect width="64" height="64" rx="16" fill="#0f7c86"/>
+  <circle cx="13.5" cy="25" r="4.8" fill="#a97c50"/>
+  <circle cx="50.5" cy="25" r="4.8" fill="#a97c50"/>
+  <circle cx="13.5" cy="25" r="2.3" fill="#7d5934"/>
+  <circle cx="50.5" cy="25" r="2.3" fill="#7d5934"/>
+  <ellipse cx="32" cy="37" rx="22.5" ry="18.5" fill="#c69c6d"/>
+  <ellipse cx="32" cy="45" rx="17" ry="10.5" fill="#f1e0c5"/>
+  <ellipse cx="32" cy="44.6" rx="10.5" ry="7.4" fill="#fbf3e7"/>
+  <g stroke="#8a6a4a" stroke-width="1" stroke-linecap="round" opacity="0.8">
+    <path d="M22 43.5l-10-1.8M22 46l-10 1.2"/>
+    <path d="M42 43.5l10-1.8M42 46l10 1.2"/>
+  </g>
+  <ellipse cx="32" cy="40" rx="4" ry="2.8" fill="#17202a"/>
+
+  <path d="M20.6 30.6a3.4 3.4 0 0 0 6.8 0z" fill="#17202a"/>
+  <path d="M36.6 30.6a3.4 3.4 0 0 0 6.8 0z" fill="#17202a"/>
+  <path d="M20 30.6h8.2M36 30.6h8.2" stroke="#17202a" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M18.5 24.6l9.5 2.6M45.5 24.6l-9.5 2.6" stroke="#17202a" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M28 48.2q4-2.2 8 0" stroke="#17202a" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+</svg>
